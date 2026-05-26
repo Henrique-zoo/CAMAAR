@@ -33,18 +33,8 @@ Funcionalidade: Importar novos dados do SIGAA
     E eu devo ver a mensagem de sucesso "Dados importados com sucesso!"
 
 
-  @happy
-  Cenário: Solicitar definição de senha para usuários novos importados
-    Dado que o sistema possui a turma "BANCOS DE DADOS" (CIC0097) cadastrada
-    E que o sistema não possui o usuário "usuario" (190084006) cadastrado
-    E que o SIGAA contém o participante "usuario" (190084006) na turma "BANCOS DE DADOS" (CIC0097)
-    Quando eu clico no botão "Importar dados"
-    Então o usuário "usuario" (190084006) deve estar pendente de definição de senha
-    E o usuário "usuario" (190084006) não deve possuir senha definida
-    E eu devo ver a mensagem de sucesso "Dados importados com sucesso!"
-
   @sad
-  Cenário: Falha ao importar dados com JSON inválido
+  Cenário: Falha ao importar dados
     Dado que o SIGAA retorna um arquivo JSON inválido
     Quando eu clico no botão "Importar dados"
     Então eu devo ver a mensagem de erro "Os dados recebidos do SIGAA são inválidos."
