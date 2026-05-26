@@ -1,5 +1,0 @@
-Para configurar onde fica db: Arquivo config/database.yml
-db:create olha apenas para aquele arquivo config/database.yml e cria os arquivos vazios development.sqlite3 e test.sqlite3.
-####
-docker run -it -v $(pwd):/app -w /app camaar rails db:create
-docker run -it -v $(pwd):/app -w /app camaar rails generate migration CreatePeople name:string email:string
