@@ -54,7 +54,7 @@ Funcionalidade: Controle departamental de administradores
     E seleciono a turma "B" da matéria "Cálculo 1"
     E seleciono o template "Avaliação de Disciplina"
     E seleciono o público-alvo "discentes"
-    E confirmo a criação do formulário
+    E pressiono o botão "Criar Formulário"
     Então devo ver uma mensagem informando que não tenho permissão para gerenciar essa turma
     E o formulário não deve ser criado
 
