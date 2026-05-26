@@ -7,7 +7,7 @@ Funcionalidade: Definição de Senha (Primeiro Acesso)
   Contexto:
     Dado que fui importado do SIGAA mas ainda não possuo senha cadastrada
 
-  @cenario_feliz
+  @happy
   Cenário: Definição de senha com sucesso no primeiro acesso
     Dado que acessei o link de ativação contido no e-mail de cadastro enviado pelo sistema
     Quando eu preencho o campo "Nova Senha" com "NovaSenha123"
@@ -16,7 +16,7 @@ Funcionalidade: Definição de Senha (Primeiro Acesso)
     Então meu usuário deve ser ativado na base de dados
     E devo ver a mensagem "Cadastro ativado com sucesso!"
 
-  @cenario_triste
+  @sad
   Cenário: Tentar definir senha com campos divergentes
     Dado que acessei o link de ativação contido no e-mail de cadastro enviado pelo sistema
     Quando eu preencho o campo "Nova Senha" com "NovaSenha123"
@@ -25,7 +25,7 @@ Funcionalidade: Definição de Senha (Primeiro Acesso)
     Então devo ver a mensagem de erro "A confirmação da senha não confere"
     E o meu usuário deve continuar inativo
 
-  @cenario_triste
+  @sad
   Cenário: Tentar definir senha deixando os campos vazios (Validação de preenchimento)
     Dado que acessei o link de ativação contido no e-mail de cadastro enviado pelo sistema
     Quando eu deixo o campo "Nova Senha" vazio
