@@ -8,7 +8,7 @@ Funcionalidade: Login de Usuários
     Dado que a base de dados possui um usuário comum com e-mail "aluno@unb.br", matrícula "232000000" e senha "SenhaSegura123"
     E possui um usuário administrador com matrícula "111222" e senha "Admin123"
 
-  @cenario_feliz
+  @happy
   Cenário: Login com sucesso utilizando e-mail como Usuário Comum
     Dado que estou na página de login
     Quando eu preencho o campo "E-mail ou Matrícula" com "aluno@unb.br"
@@ -17,7 +17,7 @@ Funcionalidade: Login de Usuários
     Então devo ser autenticado com sucesso
     E não devo visualizar a opção de gerenciamento no menu lateral
 
-  @cenario_feliz
+  @happy
   Cenário: Login com sucesso utilizando matrícula como Administrador (Regra de Negócio)
     Dado que estou na página de login
     Quando eu preencho o campo "E-mail ou Matrícula" com "111222"
@@ -26,7 +26,7 @@ Funcionalidade: Login de Usuários
     Então devo ser autenticado com sucesso
     E devo visualizar a opção de gerenciamento no menu lateral
 
-  @cenario_triste
+  @sad
   Cenário: Tentativa de login com senha incorreta
     Dado que estou na página de login
     Quando eu preencho o campo "E-mail ou Matrícula" com "aluno@unb.br"
@@ -35,7 +35,7 @@ Funcionalidade: Login de Usuários
     Então devo ver a mensagem de erro "E-mail/Matrícula ou senha inválidos"
     E permaneço na página de login
 
-  @cenario_triste
+  @sad
   Cenário: Tentativa de login deixando campos vazios (Validação de campo)
     Dado que estou na página de login
     Quando eu deixo o campo "E-mail ou Matrícula" vazio
@@ -43,7 +43,7 @@ Funcionalidade: Login de Usuários
     E clico no botão "Entrar"
     Então devo ver o aviso "Campos obrigatórios não preenchidos"
 
-  @cenario_triste
+  @sad
   Cenário: Tentativa de login sem preencher a senha
     Dado que estou na página de login
     Quando eu preencho o campo "E-mail ou Matrícula" com "usuario@email.com"
