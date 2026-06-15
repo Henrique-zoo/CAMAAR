@@ -11,4 +11,10 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  resources :avaliacoes, only: [] do
+    collection do
+      get 'pendentes'
+    end
+  end
 end

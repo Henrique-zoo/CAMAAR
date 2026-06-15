@@ -1,0 +1,18 @@
+%h1 Avaliações Pendentes
+
+- if @avaliacoes_pendentes.any?
+  %table
+    %thead
+      %tr
+        %th Turma
+        %th Status
+        %th Ação
+    %tbody
+      - @avaliacoes_pendentes.each do |avaliacao|
+        %tr
+          %td= avaliacao.formulario.turma.materia.nome
+          %td Não respondido
+          %td
+            = link_to 'Responder', '#' 
+- else
+  %p Nenhum formulário pendente foi encontrado.
