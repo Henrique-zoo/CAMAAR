@@ -4,8 +4,8 @@ require "json"
 
 class AuthController < ApplicationController
   include BrevoEmailable
-  before_action :impedir_se_logado, only: [ :solicitar_cadastro, :cadastrar ]
-  before_action :validar_token_via_url, only: [ :cadastrar ]
+  before_action :impedir_se_logado, only: [ :solicitar_cadastro, :cadastrar, :solicitar_redef_senha, :redefinir_senha ]
+  before_action :validar_token_via_url, only: [ :cadastrar, :redefinir_senha ]
 
   def index
     if current_user.present?
@@ -18,6 +18,12 @@ class AuthController < ApplicationController
   end
 
   def cadastrar
+  end
+
+  def solicitar_redef_senha
+  end
+
+  def redefinir_senha
   end
 
   def logout
@@ -83,6 +89,38 @@ class AuthController < ApplicationController
       redirect_to root_path, flash: { success: "Cadastro concluído com sucesso! Faça seu login." }
     else
       redirect_to confirmar_cadastro_path(token: params[:token]), flash: { error: usuario.errors.full_messages.to_sentence }
+    end
+  end
+  def processar_redefinicao_senha
+    return redirecionar_com_erro(solicitar_redef_senha_path, "Por favor, insira um formato de e-mail válido.") unless email_valido?(params[:email])
+    usuario = Usuario.find_by(email: params[:email])
+    return redirecionar_com_erro(solicitar_redef_senha_path, "Este e-mail não está cadastrado no sistema.") if usuario.nil?
+    token_gerado = SecureRandom.hex(16)
+    usuario.tokens.create!(
+      value:      token_gerado,
+      tipo:       "redefinicao",
+      expires_at: 10.minutes.from_now
+    )
+    if enviar_email_redefinicao(params[:email], token_gerado)
+      redirect_to root_path, flash: { success: mensagem_email_enviado("10 minutos") }
+    else
+      redirect_to solicitar_redef_senha_path, flash: { error: "Houve um erro técnico ao tentar enviar o e-mail de recuperação. Tente novamente mais tarde." }
+    end
+  end
+  def confirmar_redefinicao_senha
+    return redirecionar_com_erro(redefinir_senha_path(token: params[:token]), "A nova senha deve conter pelo menos 6 caracteres.") if params[:senha].length < 6
+    return redirecionar_com_erro(redefinir_senha_path(token: params[:token]), "As senhas não coincidem. Digite novamente.") if params[:senha] != params[:senha_confirmacao]
+    token_registro = buscar_token_valido(params[:token], "redefinicao")
+    return redirecionar_com_erro(root_path, "O link de redefinição é inválido, expirou ou não corresponde a esta operação.") if token_registro.nil?
+    usuario = token_registro.usuario
+    usuario.senha              = params[:senha]
+    usuario.senha_confirmation = params[:senha_confirmacao]
+
+    if usuario.save
+      token_registro.destroy
+      redirect_to root_path, flash: { success: "Sua senha foi alterada com sucesso! Insira suas novas credenciais para acessar." }
+    else
+      redirect_to redefinir_senha_path(token: params[:token]), flash: { error: usuario.errors.full_messages.to_sentence }
     end
   end
 
