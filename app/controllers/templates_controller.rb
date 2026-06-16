@@ -2,7 +2,7 @@
 
 class TemplatesController < ApplicationController
   before_action :authenticate_usuario!
-  before_action :set_template, only: %i[show]
+  before_action :set_template, only: %i[show edit update destroy]
 
   def index
     authorize! Template
@@ -19,9 +19,73 @@ class TemplatesController < ApplicationController
     authorize! @template
   end
 
+  def edit
+    preparar_campos_do_formulario
+
+    authorize! @template
+  end
+
+  def update
+    authorize! @template
+
+    if @template.update(template_params)
+      redirect_to @template, notice: "Template atualizado com sucesso."
+    else
+      preparar_campos_do_formulario
+
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    authorize! @template
+
+    @template.destroy
+
+    redirect_to templates_path, notice: "Template excluído com sucesso."
+  end
+
   private
 
   def set_template
     @template = Template.find(params[:id])
+  end
+
+  def preparar_campos_do_formulario
+    utilizacoes = @template.utilizacao_questoes
+    utilizacoes.build(numero: 1) if utilizacoes.empty?
+
+    utilizacoes.each do |utilizacao|
+      utilizacao.build_questao(tipo: :discursiva) if utilizacao.questao.blank?
+
+      4.times { utilizacao.questao.opcoes.build }
+    end
+  end
+
+  def template_params
+    params
+      .require(:template)
+      .permit(
+        :titulo,
+        :descricao,
+        utilizacoes_questao_attributes: [
+          :id,
+          :questao_id,
+          :numero,
+          :parent_id,
+          :_destroy,
+          questao_attributes: [
+            :id,
+            :enunciado,
+            :tipo,
+            opcoes_attributes: [
+              :id,
+              :texto,
+              :numero,
+              :_destroy
+            ]
+          ]
+        ]
+      )
   end
 end
