@@ -14,8 +14,6 @@ class PerfilDiscente < ApplicationRecord
 
   validates :id, presence: true, uniqueness: true
 
-  validates :matricula, presence: true, uniqueness: true, length: { maximum: 50 }
-
   def nome
     usuario.nome
   end

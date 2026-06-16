@@ -92,9 +92,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
 
   create_table "perfis_discentes", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "matricula", null: false
     t.datetime "updated_at", null: false
-    t.index ["matricula"], name: "index_perfis_discentes_on_matricula", unique: true
   end
 
   create_table "perfis_docentes", force: :cascade do |t|
@@ -154,11 +152,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
   create_table "usuarios", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "matricula", null: false
     t.string "nome", null: false
     t.string "senha_digest"
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_usuarios_on_email", unique: true
+    t.index ["matricula"], name: "index_usuarios_on_matricula", unique: true
   end
 
   create_table "utilizacoes_questoes", force: :cascade do |t|

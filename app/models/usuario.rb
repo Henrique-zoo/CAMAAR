@@ -37,8 +37,14 @@ class Usuario < ApplicationRecord
   has_many :templates_criados, through: :perfil_adm, source: :templates
 
   before_validation :normalizar_email
+  before_validation :normalizar_matricula
 
   validates :nome, presence: true, length: { maximum: 255 }
+
+  validates :matricula,
+    presence: true,
+    uniqueness: true,
+    length: { maximum: 50 }
 
   validates :email,
     presence: true,
@@ -76,6 +82,10 @@ class Usuario < ApplicationRecord
 
   def normalizar_email
     self.email = email.to_s.strip.downcase if email.present?
+  end
+
+  def normalizar_matricula
+    self.matricula = matricula.to_s.strip if matricula.present?
   end
 
   def senha_obrigatoria_para_usuario_ativo
