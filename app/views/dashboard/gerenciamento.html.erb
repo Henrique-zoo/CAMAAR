@@ -52,9 +52,7 @@
     <main class="management-panel">
       <div class="center-card">
         <%= link_to "Importar dados", importar_dados_path, data: { turbo_method: :post }, class: "btn-action btn-primary" %>
-        
-        <%# Desativado temporariamente para a feature_login: reativar na branch de envio de solicitações %>
-        <%#= link_to "Enviar Solicitação de Cadastro (E-mail)", enviar_solicitacoes_path, data: { turbo_method: :post }, class: "btn-action btn-secondary" %>
+        <%= link_to "Enviar Solicitação de Cadastro (E-mail)", enviar_solicitacoes_path, data: { turbo_method: :post }, class: "btn-action btn-secondary" %>
         
         <%= link_to "Editar Templates", "#", class: "btn-action btn-secondary" %>
         <%= link_to "Resultados", "#", class: "btn-action btn-secondary" %>

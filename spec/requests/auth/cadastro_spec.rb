@@ -109,7 +109,7 @@ RSpec.describe "Fluxo de Cadastro (Primeiro Acesso)", type: :request do
       }.to change(Token, :count).by(-1)
       usuario_institucional.reload
       expect(usuario_institucional.status).to eq(1)
-      
+
       expect(response).to redirect_to(root_path)
       expect(flash[:success]).to eq("Cadastro concluído com sucesso! Faça seu login.")
     end

@@ -3,21 +3,21 @@ require 'rails_helper'
 
 RSpec.describe "Redefinição de Senha", type: :request do
   # Cria um usuário base com a matrícula fictícia para passar nas validações do seu modelo
-  let!(:usuario) do 
+  let!(:usuario) do
     Usuario.create!(
-      email: "usuario@teste.com", 
-      senha: "SenhaAntiga123", 
-      senha_confirmation: "SenhaAntiga123", 
+      email: "usuario@teste.com",
+      senha: "SenhaAntiga123",
+      senha_confirmation: "SenhaAntiga123",
       matricula: "202600123",
       status: 1
-    ) 
+    )
   end
 
   describe "POST /redefinir-senha" do
     context "quando o formato do e-mail é inválido" do
       it "redireciona de volta com mensagem de erro" do
         post solicitar_redef_senha_path, params: { email: "email_invalido" }
-        
+
         expect(response).to redirect_to(solicitar_redef_senha_path)
         expect(flash[:error]).to eq("Por favor, insira um formato de e-mail válido.")
       end
@@ -26,7 +26,7 @@ RSpec.describe "Redefinição de Senha", type: :request do
     context "quando o e-mail não está cadastrado" do
       it "redireciona de volta informando que não existe" do
         post solicitar_redef_senha_path, params: { email: "nao_existe@teste.com" }
-        
+
         expect(response).to redirect_to(solicitar_redef_senha_path)
         expect(flash[:error]).to eq("Este e-mail não está cadastrado no sistema.")
       end
@@ -63,7 +63,7 @@ RSpec.describe "Redefinição de Senha", type: :request do
 
         it "não salva o fluxo com sucesso e exibe mensagem de erro técnico" do
           post solicitar_redef_senha_path, params: { email: "usuario@teste.com" }
-          
+
           expect(response).to redirect_to(solicitar_redef_senha_path)
           expect(flash[:error]).to include("Houve um erro técnico ao tentar enviar o e-mail")
         end
@@ -79,7 +79,7 @@ RSpec.describe "Redefinição de Senha", type: :request do
       it "recusa a alteração" do
         # Ajustado para usar strings de rota diretas, evitando helpers desalinhados
         post "/redefinir-senha/confirmar", params: { token: "token_secreto_123", senha: "123", senha_confirmacao: "123" }
-        
+
         expect(response).to redirect_to(redefinir_senha_path(token: "token_secreto_123"))
         expect(flash[:error]).to eq("A nova senha deve conter pelo menos 6 caracteres.")
       end
@@ -88,7 +88,7 @@ RSpec.describe "Redefinição de Senha", type: :request do
     context "quando as senhas não coincidem" do
       it "recusa a alteração" do
         post "/redefinir-senha/confirmar", params: { token: "token_secreto_123", senha: "NovaSenha123", senha_confirmacao: "Diferente123" }
-        
+
         expect(response).to redirect_to(redefinir_senha_path(token: "token_secreto_123"))
         expect(flash[:error]).to eq("As senhas não coincidem. Digite novamente.")
       end
@@ -97,7 +97,7 @@ RSpec.describe "Redefinição de Senha", type: :request do
     context "quando o token é inválido ou expirou" do
       it "redireciona para a raiz com erro" do
         post "/redefinir-senha/confirmar", params: { token: "token_inexistente", senha: "NovaSenha123", senha_confirmacao: "NovaSenha123" }
-        
+
         expect(response).to redirect_to(root_path)
         expect(flash[:error]).to eq("O link de redefinição é inválido, expirou ou não corresponde a esta operação.")
       end
@@ -106,10 +106,10 @@ RSpec.describe "Redefinição de Senha", type: :request do
     context "quando todos os dados são válidos" do
       it "altera a senha do usuário, destrói o token e redireciona para a home" do
         post "/redefinir-senha/confirmar", params: { token: "token_secreto_123", senha: "NovaSenha123", senha_confirmacao: "NovaSenha123" }
-        
+
         expect(response).to redirect_to(root_path)
         expect(flash[:success]).to eq("Sua senha foi alterada com sucesso! Insira suas novas credenciais para acessar.")
-        
+
         # Garante que o token consumido foi devidamente deletado
         expect(Token.find_by(id: token_valido.id)).to be_nil
       end
@@ -120,12 +120,12 @@ RSpec.describe "Redefinição de Senha", type: :request do
         # Simula uma falha na hora do usuario.save
         allow_any_instance_of(Usuario).to receive(:save).and_return(false)
         # Permite que os erros do modelo retornem uma mensagem controlada
-        allow_any_instance_of(ActiveModel::Errors).to receive(:full_messages).and_return(["Erro customizado do modelo"])
+        allow_any_instance_of(ActiveModel::Errors).to receive(:full_messages).and_return([ "Erro customizado do modelo" ])
       end
 
       it "redireciona para a página de redefinição exibindo os erros do modelo" do
         post "/redefinir-senha/confirmar", params: { token: "token_secreto_123", senha: "NovaSenha123", senha_confirmacao: "NovaSenha123" }
-        
+
         expect(response).to redirect_to(redefinir_senha_path(token: "token_secreto_123"))
         expect(flash[:error]).to eq("Erro customizado do modelo")
       end

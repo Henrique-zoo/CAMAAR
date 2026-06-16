@@ -2,7 +2,8 @@ require "json"
 
 
 class DashboardController < ApplicationController
-  before_action :verificar_admin, only: [ :gerenciamento, :importar_dados ]
+  include BrevoEmailable
+  before_action :verificar_admin, only: [ :gerenciamento, :importar_dados, :enviar_solicitacoes ]
 
   def index
     if current_user.nil?
@@ -18,6 +19,55 @@ class DashboardController < ApplicationController
   end
 
   def gerenciamento
+  end
+
+  def enviar_solicitacoes
+    depto_id = current_user.perfil_adm&.departamento_id
+
+    if depto_id.blank?
+      redirect_to gerenciamento_path, flash: { error: "Seu usuário não possui um departamento associado." } and return
+    end
+    turmas_do_departamento_ids = Turma.joins(:materia).where(materias: { departamento_id: depto_id }).ids
+    discentes_pendentes = Usuario.joins(:participacoes_turma)
+                                 .where(status: 0, participacoes_turma: { turma_id: turmas_do_departamento_ids })
+    docentes_pendentes = Usuario.joins(:perfil_docente)
+                                .where(status: 0, perfil_docente: { departamento_id: depto_id })
+    usuarios_pendentes = (discentes_pendentes + docentes_pendentes).uniq
+
+    if usuarios_pendentes.empty?
+      redirect_to gerenciamento_path, flash: { notice: "Não há usuários pendentes de cadastro (docentes ou discentes) neste departamento." } and return
+    end
+
+    sucessos = 0
+    erros_envio = []
+    usuarios_pendentes.each do |usuario|
+      ActiveRecord::Base.transaction do
+        token_gerado = SecureRandom.hex(16)
+
+        usuario.tokens.create!(
+          value: token_gerado,
+          tipo: "cadastro",
+          expires_at: 10.minutes.from_now
+        )
+
+        if enviar_email_convite_admin(usuario.email, token_gerado, current_user.nome)
+          sucessos += 1
+        else
+          raise "Falha de comunicação com a Brevo."
+        end
+      rescue => e
+        erros_envio << "#{usuario.nome} (Matrícula: #{usuario.matricula}): #{e.message}"
+        raise ActiveRecord::Rollback
+      end
+    end
+    if erros_envio.empty?
+      redirect_to gerenciamento_path, flash: { success: "Convites enviados com sucesso para os <strong>#{sucessos}</strong> usuários do departamento!" }
+    else
+      redirect_to gerenciamento_path, flash: {
+        error: "O envio foi concluído com instabilidades. Foram enviados #{sucessos} e-mails.",
+        error_list: erros_envio
+      }
+    end
   end
 
   def importar_dados

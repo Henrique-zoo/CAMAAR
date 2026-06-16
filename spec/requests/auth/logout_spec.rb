@@ -10,7 +10,7 @@ RSpec.describe "Auth Logout", type: :request do
         .to receive(:current_user)
         .and_return(usuario_mock)
 
-      # 2. ESPIANDO A SESSÃO: 
+      # 2. ESPIANDO A SESSÃO:
       # Criamos um mock específico para interceptar a chamada do session.clear no controller
       sessao_mock = double("Session")
       expect(sessao_mock).to receive(:clear).at_least(:once)
@@ -21,7 +21,7 @@ RSpec.describe "Auth Logout", type: :request do
         .and_return(sessao_mock)
 
       # 3. Dispara a requisição de logout
-      delete logout_path 
+      delete logout_path
 
       # 4. Verificações de redirecionamento e flash
       expect(response).to redirect_to(root_path)

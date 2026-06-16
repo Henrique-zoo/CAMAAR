@@ -13,5 +13,6 @@ Rails.application.routes.draw do
   post "/redefinir-senha", to: "auth#processar_redefinicao_senha"
   post "/redefinir-senha/confirmar", to: "auth#confirmar_redefinicao_senha"
   post "/gerenciamento/importar_dados", to: "dashboard#importar_dados", as: :importar_dados
+  post "dashboard/enviar_solicitacoes", to: "dashboard#enviar_solicitacoes", as: :enviar_solicitacoes
   delete "/logout", to: "auth#logout", as: :logout
 end
