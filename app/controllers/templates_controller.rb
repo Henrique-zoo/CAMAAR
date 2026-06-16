@@ -2,7 +2,7 @@
 
 class TemplatesController < ApplicationController
   before_action :authenticate_usuario!
-  before_action :set_template, only: %i[show]
+  before_action :set_template, only: %i[show edit update destroy]
 
   def index
     authorize! Template
@@ -39,6 +39,32 @@ class TemplatesController < ApplicationController
 
       render :new, status: :unprocessable_entity
     end
+  end
+
+  def edit
+    preparar_campos_do_formulario
+
+    authorize! @template
+  end
+
+  def update
+    authorize! @template
+
+    if @template.update(template_params)
+      redirect_to @template, notice: "Template atualizado com sucesso."
+    else
+      preparar_campos_do_formulario
+
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def destroy
+    authorize! @template
+
+    @template.destroy
+
+    redirect_to templates_path, notice: "Template excluído com sucesso."
   end
 
   private
