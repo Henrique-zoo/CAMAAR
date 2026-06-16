@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Formulario < ApplicationRecord
   enum :publico_alvo, {
     docentes: 0,

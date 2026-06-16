@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PerfilDiscente < ApplicationRecord
   self.primary_key = :id
 

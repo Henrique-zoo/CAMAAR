@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class UtilizacaoQuestao < ApplicationRecord
   belongs_to :template,
     class_name: "Template",

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Questao < ApplicationRecord
   enum :tipo, {
     objetiva: 0,

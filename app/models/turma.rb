@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Turma < ApplicationRecord
   enum :semestre, {
     primeiro: 1,

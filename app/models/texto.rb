@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Texto < ApplicationRecord
   belongs_to :resposta,
     class_name: "Resposta",

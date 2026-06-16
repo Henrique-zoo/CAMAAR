@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreatePerfisDiscentes < ActiveRecord::Migration[8.1]
   def change
     create_table :perfis_discentes, id: false do |t|
