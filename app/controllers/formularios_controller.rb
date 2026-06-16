@@ -1,6 +1,14 @@
 class FormulariosController < ApplicationController
   before_action :require_admin!
 
+  def index
+    @formularios = Formulario
+      .do_departamento(current_usuario.perfil_adm.departamento)
+      .do_semestre_atual
+      .recentes
+      .includes(:template, turma: :materia)
+  end
+
   def new
     @templates = Template.all
     @turmas = Turma.do_semestre_atual.sem_formulario.includes(:materia)
