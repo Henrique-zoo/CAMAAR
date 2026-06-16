@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Template < ApplicationRecord
   belongs_to :adm,
     class_name: "PerfilAdm",
@@ -18,7 +20,9 @@ class Template < ApplicationRecord
     inverse_of: :template,
     dependent: :nullify
 
-  accepts_nested_attributes_for :utilizacao_questoes, allow_destroy: true
+  accepts_nested_attributes_for :utilizacao_questoes,
+    allow_destroy: true,
+    reject_if: :utilizacao_questao_em_branco?
 
   before_validation :normalizar_titulo
   before_validation :preencher_criado_em
@@ -63,5 +67,19 @@ class Template < ApplicationRecord
     return if questoes_validas.any?
 
     errors.add(:utilizacao_questoes, "deve conter ao menos uma questão")
+  end
+
+  def utilizacao_questao_em_branco?(attributes)
+    return false if attributes["questao_id"].present?
+
+    questao_attributes = attributes["questao_attributes"] || {}
+    return false if questao_attributes["enunciado"].present?
+
+    opcoes_attributes = questao_attributes["opcoes_attributes"] || {}
+    opcoes = opcoes_attributes.respond_to?(:values) ? opcoes_attributes.values : opcoes_attributes
+
+    opcoes.none? do |opcao_attributes|
+      opcao_attributes["texto"].present?
+    end
   end
 end

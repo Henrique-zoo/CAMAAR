@@ -1,0 +1,73 @@
+<%= form_with model: @template do |f| %>
+  <% if @template.errors.any? %>
+    <div>
+      <h2>Erros:</h2>
+      <ul>
+        <% @template.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :titulo %>
+    <%= f.text_field :titulo %>
+  </div>
+
+  <div>
+    <%= f.label :descricao %>
+    <%= f.text_area :descricao %>
+  </div>
+
+  <hr>
+
+  <h3>Questões</h3>
+
+  <%= f.fields_for :utilizacao_questoes do |utilizacao_form| %>
+    <div style="border: 1px solid #ccc; padding: 10px;">
+      <%= utilizacao_form.hidden_field :parent_id %>
+
+      <div>
+        <%= utilizacao_form.label :numero, "Ordem" %>
+        <%= utilizacao_form.number_field :numero, min: 1 %>
+      </div>
+
+      <%= utilizacao_form.fields_for :questao do |questao_form| %>
+        <div>
+          <%= questao_form.label :enunciado %>
+          <%= questao_form.text_area :enunciado %>
+        </div>
+
+        <div>
+          <%= questao_form.label :tipo %>
+          <%= questao_form.select(
+                :tipo,
+                [["Discursiva", "discursiva"], ["Objetiva", "objetiva"]]
+              ) %>
+        </div>
+
+        <h4>Opções</h4>
+
+        <%= questao_form.fields_for :opcoes do |opcao_form| %>
+          <div>
+            <%= opcao_form.label :texto %>
+            <%= opcao_form.text_field :texto %>
+
+            <%= opcao_form.label :numero %>
+            <%= opcao_form.number_field :numero, min: 1 %>
+          </div>
+        <% end %>
+      <% end %>
+
+      <div>
+        <%= utilizacao_form.check_box :_destroy %>
+        <%= utilizacao_form.label :_destroy, "Remover questão" %>
+      </div>
+    </div>
+  <% end %>
+
+  <br>
+
+  <%= f.submit %>
+<% end %>
