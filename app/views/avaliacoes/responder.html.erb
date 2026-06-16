@@ -1,0 +1,33 @@
+<h1>Responder Avaliação</h1>
+
+<% if flash[:alert] %>
+  <p id="alert"><%= flash[:alert] %></p>
+<% end %>
+
+<p>Turma: <strong><%= @formulario.turma.materia.nome %></strong></p>
+
+<%= form_with url: submeter_avaliacao_path(@avaliacao), method: :post do |f| %>
+  <% @questoes.each_with_index do |questao, i| %>
+    <div class="questao" id="questao-<%= questao.id %>">
+      <p><strong><%= i + 1 %>. <%= questao.enunciado %></strong></p>
+
+      <% if questao.discursiva? %>
+        <textarea name="respostas[<%= questao.id %>][texto]"
+                  placeholder="Digite sua resposta"></textarea>
+
+      <% else %>
+        <% questao.opcoes.ordenadas.each do |opcao| %>
+          <label>
+            <input type="radio"
+                   name="respostas[<%= questao.id %>][opcao_id]"
+                   value="<%= opcao.id %>" />
+            <%= opcao.texto %>
+          </label><br/>
+        <% end %>
+      <% end %>
+    </div>
+    <hr/>
+  <% end %>
+
+  <input type="submit" value="Confirmar envio" />
+<% end %>
