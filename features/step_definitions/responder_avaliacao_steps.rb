@@ -1,3 +1,7 @@
+# features/step_definitions/responder_avaliacao_steps.rb
+# Steps exclusivos da HU14 – Responder questionário da turma
+# Steps compartilhados (usuário, autenticação) vêm do avaliacoes_steps.rb
+
 def criar_contexto_formulario_com_questoes(nome_turma)
   depto   = Departamento.find_or_create_by!(nome: 'Departamento Geral')
   materia = Materia.find_or_create_by!(nome: nome_turma, departamento: depto) do |m|
@@ -12,21 +16,35 @@ def criar_contexto_formulario_com_questoes(nome_turma)
                               senha: 'password123', status: :ativo)
   perf_adm = PerfilAdm.create!(usuario: adm, departamento: depto)
 
+  # Questão discursiva
   @questao_discursiva = Questao.create!(
     enunciado: 'Como você avalia a turma?',
     tipo: :discursiva
   )
 
+  # Questão objetiva com opções via nested attributes
   @questao_objetiva = Questao.create!(
     enunciado: 'Qual nota você dá?',
-    tipo: :objetiva
+    tipo: :objetiva,
+    opcoes_attributes: [
+      { numero: 1, texto: 'Ótimo' },
+      { numero: 2, texto: 'Ruim'  }
+    ]
   )
-  Opcao.create!(questao: @questao_objetiva, numero: 1, texto: 'Ótimo')
-  Opcao.create!(questao: @questao_objetiva, numero: 2, texto: 'Ruim')
 
-  template = Template.create!(adm: perf_adm, titulo: "Template #{rand(1000)}")
-  UtilizacaoQuestao.create!(template: template, questao: @questao_discursiva, numero: 1)
-  UtilizacaoQuestao.create!(template: template, questao: @questao_objetiva,   numero: 2)
+  # Template criado já com questões via nested attributes
+  template = Template.create!(
+    adm: perf_adm,
+    titulo: "Template #{rand(1000)}",
+    utilizacao_questoes_attributes: [
+      { questao_id: @questao_discursiva.id, numero: 1 },
+      { questao_id: @questao_objetiva.id,   numero: 2 }
+    ]
+  )
+
+  # Recarrega para garantir associações atualizadas
+  @questao_discursiva.reload
+  @questao_objetiva.reload
 
   @formulario = Formulario.create!(
     adm: perf_adm,
@@ -41,6 +59,10 @@ def criar_contexto_formulario_com_questoes(nome_turma)
   @avaliacao   = Avaliacao.create!(formulario: @formulario, participacao_turma: participacao)
 end
 
+# -------------------------------------------------------
+# Dado
+# -------------------------------------------------------
+
 Dado('que estou na página de resposta do formulário da turma {string}') do |nome_turma|
   criar_contexto_formulario_com_questoes(nome_turma)
   visit responder_avaliacao_path(@avaliacao)
@@ -51,18 +73,23 @@ Dado('que já respondi o formulário da turma {string} anteriormente') do |nome_
   @avaliacao.marcar_como_respondida!
 end
 
-Quando('eu preencho todas as questões obrigatórias') do
-  find("textarea[name='respostas[#{@questao_discursiva.id}][texto]']")
-    .set('Achei a turma muito boa.')
+# -------------------------------------------------------
+# Quando
+# -------------------------------------------------------
 
+Quando('eu preencho todas as questões obrigatórias') do
+  # Preenche a questão discursiva
+  fill_in "respostas[#{@questao_discursiva.id}][texto]", with: 'Achei a turma muito boa.'
+
+  # Seleciona a primeira opção da questão objetiva usando o texto da label
   primeira_opcao = @questao_objetiva.opcoes.ordenadas.first
-  find("input[name='respostas[#{@questao_objetiva.id}][opcao_id]'][value='#{primeira_opcao.id}']")
-    .set(true)
+  within "#questao-#{@questao_objetiva.id}" do
+    choose primeira_opcao.texto
+  end
 end
 
 Quando('eu deixo uma questão obrigatória em branco') do
-  find("textarea[name='respostas[#{@questao_discursiva.id}][texto]']")
-    .set('Resposta parcial.')
+  fill_in "respostas[#{@questao_discursiva.id}][texto]", with: 'Resposta parcial.'
   # questão objetiva intencionalmente deixada em branco
 end
 
@@ -73,6 +100,10 @@ end
 Quando('eu tento acessar a página de resposta do formulário da turma {string}') do |_nome_turma|
   visit responder_avaliacao_path(@avaliacao)
 end
+
+# -------------------------------------------------------
+# Então
+# -------------------------------------------------------
 
 Então('devo ver uma mensagem informando que a avaliação foi registrada com sucesso') do
   expect(page).to have_content('Avaliação registrada com sucesso.')
@@ -93,4 +124,4 @@ end
 
 Então('devo ver uma mensagem informando que esta avaliação já foi respondida') do
   expect(page).to have_content('Esta avaliação já foi respondida.')
-end 
+end

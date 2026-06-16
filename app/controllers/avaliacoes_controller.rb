@@ -1,9 +1,9 @@
 class AvaliacoesController < ApplicationController
   before_action :require_login
-  before_action :set_avaliacao, only: %i[responder submeter]  # ← linha nova
+  before_action :set_avaliacao, only: %i[responder submeter]
 
+  # GET /avaliacoes/pendentes
   def pendentes
-    # ← sem alteração, exatamente como está na HU13
     turmas_ids = ParticipacaoTurma
                    .where(usuario: current_usuario)
                    .pluck(:turma_id)
@@ -15,7 +15,7 @@ class AvaliacoesController < ApplicationController
                               .includes(formulario: { turma: :materia })
   end
 
-  # ← tudo abaixo é novo da HU14
+  # GET /avaliacoes/:id/responder
   def responder
     if @avaliacao.respondida?
       redirect_to pendentes_avaliacoes_path,
@@ -27,6 +27,7 @@ class AvaliacoesController < ApplicationController
     @questoes   = questoes_do_formulario
   end
 
+  # POST /avaliacoes/:id/submeter
   def submeter
     if @avaliacao.respondida?
       redirect_to pendentes_avaliacoes_path,
@@ -78,9 +79,9 @@ class AvaliacoesController < ApplicationController
       resposta = respostas_params[questao.id.to_s] || {}
 
       if questao.discursiva?
-        resposta[:texto].to_s.strip.present?
+        resposta["texto"].to_s.strip.present?
       else
-        Array(resposta[:opcao_id]).any?(&:present?)
+        Array(resposta["opcao_id"]).any?(&:present?)
       end
     end
   end
@@ -92,16 +93,16 @@ class AvaliacoesController < ApplicationController
       @questoes.each do |questao|
         resposta_data = respostas_params[questao.id.to_s] || {}
         resposta = Resposta.find_or_initialize_by(avaliacao: @avaliacao, questao: questao)
-        resposta.save!
 
         if questao.discursiva?
-          Texto.find_or_initialize_by(resposta: resposta)
-               .update!(texto: resposta_data[:texto].to_s.strip)
+          resposta.build_texto(texto: resposta_data["texto"].to_s.strip)
         else
-          opcao_id = resposta_data[:opcao_id].to_s
+          opcao_id = resposta_data["opcao_id"].to_s
           opcao    = questao.opcoes.find(opcao_id)
-          OpcaoEscolhida.find_or_create_by!(resposta: resposta, opcao: opcao)
+          resposta.opcoes_escolhidas.build(opcao: opcao)
         end
+
+        resposta.save!
       end
 
       @avaliacao.marcar_como_respondida!
@@ -109,7 +110,7 @@ class AvaliacoesController < ApplicationController
 
     redirect_to pendentes_avaliacoes_path,
                 notice: 'Avaliação registrada com sucesso.'
-  rescue ActiveRecord::RecordInvalid
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => e
     flash.now[:alert] = 'Todas as questões obrigatórias devem ser preenchidas.'
     render :responder, status: :unprocessable_entity
   end
