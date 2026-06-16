@@ -4,22 +4,33 @@ module Formularios
     SEM_QUESTOES = "O template deve possuir pelo menos uma questão"
     TURMAS_INVALIDAS = "Uma ou mais turmas selecionadas são inválidas"
     TURMA_COM_FORMULARIO = "Uma ou mais turmas selecionadas já possuem formulário"
+    SEM_PUBLICO_ALVO = "Por favor, selecione o público-alvo do formulário"
 
-    def self.call(template_id:, turma_ids:, perfil_adm:)
-      new(template_id:, turma_ids:, perfil_adm:).call
+    def self.call(template_id:, turma_ids:, publico_alvo:, perfil_adm:)
+      new(template_id:, turma_ids:, publico_alvo:, perfil_adm:).call
     end
 
-    def initialize(template_id:, turma_ids:, perfil_adm:)
+    def self.validate_preparacao!(template_id:, turma_ids:)
+      new(template_id:, turma_ids:, publico_alvo: :docentes, perfil_adm: nil).validate_preparacao!
+    end
+
+    def initialize(template_id:, turma_ids:, publico_alvo:, perfil_adm:)
       @template_id = template_id
       @turma_ids = Array(turma_ids).map(&:to_i).uniq.reject(&:zero?)
+      @publico_alvo = publico_alvo
       @perfil_adm = perfil_adm
     end
 
-    def call
+    def validate_preparacao!
       validate_turma_ids!
       validate_template!
       validate_turmas!
       validate_turmas_sem_formulario!
+    end
+
+    def call
+      validate_preparacao!
+      validate_publico_alvo!
 
       formularios = []
 
@@ -29,10 +40,11 @@ module Formularios
             adm: perfil_adm,
             template: template,
             turma: turma,
-            publico_alvo: :docentes
+            publico_alvo: publico_alvo
           )
 
           copy_questoes_from_template!(formulario)
+          formulario.criar_avaliacoes_pendentes!
           formularios << formulario
         end
       end
@@ -42,7 +54,7 @@ module Formularios
 
     private
 
-    attr_reader :template_id, :turma_ids, :perfil_adm
+    attr_reader :template_id, :turma_ids, :publico_alvo, :perfil_adm
 
     def validate_turma_ids!
       raise Error, SEM_TURMAS if turma_ids.empty?
@@ -58,6 +70,11 @@ module Formularios
 
     def validate_turmas_sem_formulario!
       raise Error, TURMA_COM_FORMULARIO if turmas.joins(:formularios).exists?
+    end
+
+    def validate_publico_alvo!
+      raise Error, SEM_PUBLICO_ALVO if publico_alvo.blank?
+      raise Error, SEM_PUBLICO_ALVO unless Formulario.publico_alvos.key?(publico_alvo.to_s)
     end
 
     def template
