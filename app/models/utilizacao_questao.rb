@@ -25,6 +25,8 @@ class UtilizacaoQuestao < ApplicationRecord
 
   has_many :opcoes, through: :questao, source: :opcoes
 
+  accepts_nested_attributes_for :questao
+
   before_validation :herdar_template_do_parent
 
   validates :template, presence: true

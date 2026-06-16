@@ -26,7 +26,9 @@ class Questao < ApplicationRecord
     inverse_of: :questao,
     dependent: :restrict_with_error
 
-  accepts_nested_attributes_for :opcoes, allow_destroy: true
+  accepts_nested_attributes_for :opcoes,
+    allow_destroy: true,
+    reject_if: :all_blank
 
   before_validation :normalizar_enunciado
 
