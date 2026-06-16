@@ -68,6 +68,45 @@ module TestBuilders
     template.utilizacao_questoes.raizes.ordenadas.includes(:questao).map(&:questao)
   end
 
+  def create_perfil_docente(usuario, departamento: nil, **attrs)
+    departamento ||= Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}")
+    PerfilDocente.create!(id: usuario.id, usuario: usuario, departamento: departamento, **attrs)
+    usuario
+  end
+
+  def create_perfil_discente(usuario, matricula: nil, **attrs)
+    matricula ||= "2026#{SecureRandom.hex(4)}"
+    PerfilDiscente.create!(id: usuario.id, usuario: usuario, matricula: matricula, **attrs)
+    usuario
+  end
+
+  def create_participacao(usuario:, turma:, tipo_participacao:)
+    case tipo_participacao.to_sym
+    when :docente
+      create_perfil_docente(usuario, departamento: turma.departamento) unless usuario.docente?
+    when :discente
+      create_perfil_discente(usuario) unless usuario.discente?
+    end
+
+    ParticipacaoTurma.create!(usuario: usuario, turma: turma, tipo_participacao: tipo_participacao)
+  end
+
+  def create_formulario(turma:, adm: nil, template: nil, publico_alvo: :docentes, criar_avaliacoes: false, **attrs)
+    adm ||= create_admin_usuario(departamento: turma.departamento).perfil_adm
+    template ||= create_template_with_questoes(titulo: "Formulário de teste", adm: adm)
+
+    formulario = Formulario.create!(
+      adm: adm,
+      turma: turma,
+      template: template,
+      publico_alvo: publico_alvo,
+      **attrs
+    )
+
+    formulario.criar_avaliacoes_pendentes! if criar_avaliacoes
+    formulario
+  end
+
   private
 
   def default_questoes

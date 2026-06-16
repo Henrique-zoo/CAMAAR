@@ -7,14 +7,21 @@ RSpec.describe Formularios::CreateFromTemplate do
   let(:template) { create_template_with_questoes(titulo: "Avaliação Docente", adm: perfil_adm) }
   let(:turma_a) { create_turma(nome_materia: "MDS", numero: 1, departamento: departamento) }
   let(:turma_b) { create_turma(nome_materia: "IHC", numero: 2, departamento: departamento) }
+  let(:publico_alvo) { :docentes }
+
+  def call_service(**overrides)
+    described_class.call(
+      template_id: template.id,
+      turma_ids: [ turma_a.id, turma_b.id ],
+      publico_alvo: publico_alvo,
+      perfil_adm: perfil_adm,
+      **overrides
+    )
+  end
 
   describe ".call" do
     it "cria um formulário por turma selecionada" do
-      formularios = described_class.call(
-        template_id: template.id,
-        turma_ids: [turma_a.id, turma_b.id],
-        perfil_adm: perfil_adm
-      )
+      formularios = call_service
 
       expect(formularios.size).to eq(2)
       expect(Formulario.count).to eq(2)
@@ -23,11 +30,7 @@ RSpec.describe Formularios::CreateFromTemplate do
     end
 
     it "copia as questões do template como snapshot independente" do
-      formularios = described_class.call(
-        template_id: template.id,
-        turma_ids: [turma_a.id],
-        perfil_adm: perfil_adm
-      )
+      formularios = call_service(turma_ids: [ turma_a.id ])
 
       formulario = formularios.first
       questoes_template = questoes_ordenadas_do_template(template)
@@ -47,11 +50,7 @@ RSpec.describe Formularios::CreateFromTemplate do
     end
 
     it "copia opções para questões objetivas" do
-      formularios = described_class.call(
-        template_id: template.id,
-        turma_ids: [turma_a.id],
-        perfil_adm: perfil_adm
-      )
+      formularios = call_service(turma_ids: [ turma_a.id ])
 
       questao_objetiva = formularios.first.questoes.find_by(tipo: :objetiva)
       expect(questao_objetiva.opcoes.order(:numero).pluck(:texto)).to eq(%w[Ruim Regular Boa Excelente])
@@ -68,11 +67,7 @@ RSpec.describe Formularios::CreateFromTemplate do
       end
 
       expect do
-        described_class.call(
-          template_id: template.id,
-          turma_ids: [turma_a.id, turma_b.id],
-          perfil_adm: perfil_adm
-        )
+        call_service
       end.to raise_error(ActiveRecord::RecordInvalid)
 
       expect(Formulario.count).to eq(0)
@@ -82,30 +77,56 @@ RSpec.describe Formularios::CreateFromTemplate do
 
     it "levanta erro quando nenhuma turma é selecionada" do
       expect do
-        described_class.call(
-          template_id: template.id,
-          turma_ids: [],
-          perfil_adm: perfil_adm
-        )
+        call_service(turma_ids: [])
       end.to raise_error(Formularios::Error, "É necessário selecionar pelo menos uma turma")
 
       expect(Formulario.count).to eq(0)
     end
 
     it "levanta erro quando turma já possui formulário" do
-      described_class.call(
-        template_id: template.id,
-        turma_ids: [turma_a.id],
-        perfil_adm: perfil_adm
-      )
+      call_service(turma_ids: [ turma_a.id ])
 
       expect do
-        described_class.call(
-          template_id: template.id,
-          turma_ids: [turma_a.id],
-          perfil_adm: perfil_adm
-        )
+        call_service(turma_ids: [ turma_a.id ])
       end.to raise_error(Formularios::Error, "Uma ou mais turmas selecionadas já possuem formulário")
+    end
+
+    it "persiste o público-alvo informado" do
+      formularios = call_service(turma_ids: [ turma_a.id ], publico_alvo: :discentes)
+
+      expect(formularios.first.publico_alvo).to eq("discentes")
+    end
+
+    it "cria avaliações pendentes para o público-alvo da turma" do
+      docente = create_usuario(nome: "Docente")
+      PerfilDocente.create!(usuario: docente, departamento: departamento)
+      ParticipacaoTurma.create!(usuario: docente, turma: turma_a, tipo_participacao: :docente)
+
+      discente = create_usuario(nome: "Discente")
+      PerfilDiscente.create!(usuario: discente, matricula: "20260001")
+      ParticipacaoTurma.create!(usuario: discente, turma: turma_a, tipo_participacao: :discente)
+
+      formularios = call_service(turma_ids: [ turma_a.id ], publico_alvo: :docentes)
+
+      expect(Avaliacao.count).to eq(1)
+      expect(formularios.first.avaliacoes.sole.participacao_turma).to eq(docente.participacoes_turma.sole)
+      expect(formularios.first.avaliacoes.sole).to be_pendente
+    end
+
+    it "levanta erro quando público-alvo não é informado" do
+      expect do
+        call_service(turma_ids: [ turma_a.id ], publico_alvo: nil)
+      end.to raise_error(Formularios::Error, "Por favor, selecione o público-alvo do formulário")
+
+      expect(Formulario.count).to eq(0)
+    end
+
+    it "levanta erro quando público-alvo é inválido" do
+      expect do
+        call_service(turma_ids: [ turma_a.id ], publico_alvo: "invalido")
+      end.to raise_error(Formularios::Error, "Por favor, selecione o público-alvo do formulário")
+
+      expect(Formulario.count).to eq(0)
     end
   end
 end
