@@ -16,5 +16,5 @@ Rails.application.routes.draw do
     collection do
       get 'pendentes'
     end
-  end
+  end 
 end

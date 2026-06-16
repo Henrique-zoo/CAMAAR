@@ -1,11 +1,21 @@
 class AvaliacoesController < ApplicationController
-  def pendentes
-    # Simulando o usuário logado provisoriamente
-    usuario_atual = defined?(current_usuario) ? current_usuario : Usuario.first
+  before_action :require_login
 
-    @avaliacoes_pendentes = Avaliacao.pendentes
-                                     .joins(:participacao_turma)
-                                     .where(participacoes_turmas: { usuario_id: usuario_atual.id })
-                                     .includes(formulario: { turma: :materia })
+  def pendentes
+    turmas_ids = ParticipacaoTurma
+                   .where(usuario: current_usuario)
+                   .pluck(:turma_id)
+
+    @avaliacoes_pendentes = Avaliacao
+                              .pendentes
+                              .joins(:participacao_turma)
+                              .where(participacoes_turmas: { turma_id: turmas_ids })
+                              .includes(formulario: { turma: :materia })
+  end
+
+  private
+
+  def require_login
+    redirect_to root_path, alert: 'Usuário não autenticado' unless current_usuario
   end
 end
