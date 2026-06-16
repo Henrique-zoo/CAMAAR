@@ -26,12 +26,13 @@ module Formularios
       ActiveRecord::Base.transaction do
         turmas.each do |turma|
           formulario = Formulario.create!(
+            adm: perfil_adm,
             template: template,
-            perfil_adm: perfil_adm
+            turma: turma,
+            publico_alvo: :docentes
           )
 
-          copy_questoes!(formulario)
-          turma.update!(formulario: formulario)
+          copy_questoes_from_template!(formulario)
           formularios << formulario
         end
       end
@@ -48,7 +49,7 @@ module Formularios
     end
 
     def validate_template!
-      raise Error, SEM_QUESTOES if template.questoes.none?
+      raise Error, SEM_QUESTOES if template.utilizacao_questoes.raizes.none?
     end
 
     def validate_turmas!
@@ -56,7 +57,7 @@ module Formularios
     end
 
     def validate_turmas_sem_formulario!
-      raise Error, TURMA_COM_FORMULARIO if turmas.where.not(formulario_id: nil).exists?
+      raise Error, TURMA_COM_FORMULARIO if turmas.joins(:formularios).exists?
     end
 
     def template
@@ -67,34 +68,20 @@ module Formularios
       @turmas ||= Turma.do_semestre_atual.where(id: turma_ids)
     end
 
-    def copy_questoes!(formulario)
-      template.questoes.order(:posicao).each do |questao_template|
-        questao = formulario.questoes.create!(
-          enunciado: questao_template.enunciado,
-          tipo: questao_template.tipo,
-          obrigatoria: questao_template.obrigatoria,
-          posicao: questao_template.posicao
+    def copy_questoes_from_template!(formulario)
+      template.utilizacao_questoes.raizes.ordenadas.each do |utilizacao|
+        questao_origem = utilizacao.questao
+
+        questao = formulario.questoes.build(
+          enunciado: questao_origem.enunciado,
+          tipo: questao_origem.tipo
         )
 
-        copy_opcoes!(questao_template, questao)
-      end
-    end
+        questao_origem.opcoes.ordenadas.each do |opcao|
+          questao.opcoes.build(numero: opcao.numero, texto: opcao.texto)
+        end
 
-    def copy_opcoes!(questao_template, questao)
-      return unless questao_template.objetiva?
-
-      opcoes_template(questao_template).each do |texto|
-        questao.opcoes.create!(texto: texto)
-      end
-    end
-
-    def opcoes_template(questao_template)
-      if questao_template.opcoes.any?
-        questao_template.opcoes.pluck(:texto)
-      elsif questao_template.read_attribute(:opcoes).present?
-        Array(questao_template.read_attribute(:opcoes))
-      else
-        []
+        questao.save!
       end
     end
   end

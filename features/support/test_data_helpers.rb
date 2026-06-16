@@ -1,6 +1,7 @@
-module TestBuilders
-  def create_admin_usuario(**attrs)
+module TestDataHelpers
+  def criar_administrador(**attrs)
     departamento = attrs[:departamento] || Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}")
+    @departamento = departamento
     defaults = {
       nome: "Administrador",
       email: "#{SecureRandom.hex(4)}@example.com",
@@ -12,21 +13,15 @@ module TestBuilders
     usuario
   end
 
-  def create_usuario(**attrs)
-    defaults = {
-      nome: "Usuário",
-      email: "#{SecureRandom.hex(4)}@example.com",
-      status: :ativo,
-      senha: "senha12345"
-    }
-    Usuario.create!(defaults.merge(attrs))
-  end
+  def criar_template_com_questoes(titulo:, questoes: nil)
+    template = Template.new(
+      titulo: titulo,
+      descricao: "Template de teste",
+      adm: @admin.perfil_adm,
+      criado_em: Time.current
+    )
 
-  def create_template_with_questoes(titulo:, adm: nil, questoes: nil)
-    adm ||= create_admin_usuario.perfil_adm
-    template = Template.new(titulo: titulo, descricao: "Descrição de teste", adm: adm, criado_em: Time.current)
-
-    (questoes || default_questoes).each_with_index do |questao_attrs, index|
+    (questoes || questoes_padrao).each_with_index do |questao_attrs, index|
       attrs = questao_attrs.dup
       opcoes = attrs.delete(:opcoes)
       numero = attrs.delete(:numero) || attrs.delete(:posicao) || (index + 1)
@@ -48,13 +43,13 @@ module TestBuilders
     template
   end
 
-  def create_turma(nome_materia:, numero:, semestre: Turma.semestre_atual, departamento: nil, ano: Date.current.year)
-    departamento ||= Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}")
-    materia = Materia.create!(
-      nome: nome_materia,
-      codigo: "#{nome_materia.parameterize}-#{SecureRandom.hex(2)}".upcase,
-      departamento: departamento
-    )
+  def criar_turma(nome_materia:, numero:, semestre: Turma.semestre_atual, ano: Date.current.year)
+    departamento = @departamento || @admin&.perfil_adm&.departamento ||
+      Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}")
+    materia = Materia.find_or_create_by!(codigo: nome_materia.parameterize.upcase) do |record|
+      record.nome = nome_materia
+      record.departamento = departamento
+    end
 
     Turma.create!(
       materia: materia,
@@ -64,27 +59,24 @@ module TestBuilders
     )
   end
 
+  def login_como(usuario)
+    allow_any_instance_of(ApplicationController).to receive(:current_usuario).and_return(usuario)
+  end
+
   def questoes_ordenadas_do_template(template)
     template.utilizacao_questoes.raizes.ordenadas.includes(:questao).map(&:questao)
   end
 
   private
 
-  def default_questoes
+  def questoes_padrao
     [
       {
         enunciado: "Como você avalia a disciplina?",
         tipo: :discursiva
-      },
-      {
-        enunciado: "Nota geral",
-        tipo: :objetiva,
-        opcoes: %w[Ruim Regular Boa Excelente]
       }
     ]
   end
 end
 
-RSpec.configure do |config|
-  config.include TestBuilders
-end
+World(TestDataHelpers)

@@ -4,6 +4,11 @@ class Questao < ApplicationRecord
     discursiva: 1
   }
 
+  belongs_to :formulario,
+    class_name: "Formulario",
+    optional: true,
+    inverse_of: :questoes
+
   has_many :utilizacao_questoes,
     class_name: "UtilizacaoQuestao",
     foreign_key: :questao_id,

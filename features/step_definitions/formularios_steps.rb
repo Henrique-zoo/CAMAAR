@@ -34,15 +34,20 @@ end
 Então("o formulário deve ser gerado com sucesso para ambas as turmas") do
   expect(Formulario.count).to eq(2)
 
-  expect(@turma_a.reload.formulario).to be_present
-  expect(@turma_b.reload.formulario).to be_present
-  expect(@turma_a.formulario.template).to eq(@template)
-  expect(@turma_b.formulario.template).to eq(@template)
+  formulario_a = @turma_a.reload.formularios.sole
+  formulario_b = @turma_b.reload.formularios.sole
 
-  [@turma_a, @turma_b].each do |turma|
-    questoes_formulario = turma.formulario.questoes.order(:posicao)
-    expect(questoes_formulario.count).to eq(@template.questoes.count)
-    expect(questoes_formulario.pluck(:enunciado)).to eq(@template.questoes.order(:posicao).pluck(:enunciado))
+  expect(formulario_a).to be_present
+  expect(formulario_b).to be_present
+  expect(formulario_a.template).to eq(@template)
+  expect(formulario_b.template).to eq(@template)
+
+  questoes_template = questoes_ordenadas_do_template(@template)
+
+  [formulario_a, formulario_b].each do |formulario|
+    questoes_formulario = formulario.questoes.order(:id)
+    expect(questoes_formulario.count).to eq(questoes_template.count)
+    expect(questoes_formulario.pluck(:enunciado)).to eq(questoes_template.map(&:enunciado))
   end
 end
 
@@ -59,6 +64,6 @@ Então("nenhum formulário deve ser gerado") do
 end
 
 def criar_turma_do_nome_exibicao(nome_exibicao)
-  materia_nome, codigo_turma = nome_exibicao.split(" - Turma ", 2)
-  criar_turma(nome_materia: materia_nome, codigo_turma: codigo_turma)
+  materia_nome, codigo = nome_exibicao.split(" - Turma ", 2)
+  criar_turma(nome_materia: materia_nome, numero: Turma.numero_de_codigo_exibicao(codigo))
 end

@@ -1,11 +1,12 @@
 require "rails_helper"
 
 RSpec.describe "Formularios", type: :request do
-  let(:admin) { create_admin_usuario }
+  let(:departamento) { Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}") }
+  let(:admin) { create_admin_usuario(departamento: departamento) }
   let(:usuario) { create_usuario }
-  let(:template) { create_template_with_questoes(titulo: "Avaliação Docente") }
-  let(:turma_a) { create_turma(nome_materia: "MDS", codigo_turma: "A") }
-  let(:turma_b) { create_turma(nome_materia: "IHC", codigo_turma: "B") }
+  let(:template) { create_template_with_questoes(titulo: "Avaliação Docente", adm: admin.perfil_adm) }
+  let(:turma_a) { create_turma(nome_materia: "MDS", numero: 1, departamento: departamento) }
+  let(:turma_b) { create_turma(nome_materia: "IHC", numero: 2, departamento: departamento) }
 
   describe "POST /formularios" do
     it "cria formulários para múltiplas turmas quando admin autenticado" do

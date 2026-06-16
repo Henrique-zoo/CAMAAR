@@ -46,6 +46,36 @@ class Turma < ApplicationRecord
     joins(:materia).where(materias: { departamento_id: departamento.id })
   }
 
+  scope :do_semestre_atual, -> {
+    where(ano: Date.current.year, semestre: semestre_atual)
+  }
+
+  scope :sem_formulario, -> {
+    left_joins(:formularios).where(formularios: { id: nil })
+  }
+
+  def self.semestre_atual
+    mes = Date.current.month
+    return :primeiro if mes <= 6
+    return :segundo if mes <= 11
+
+    :verao
+  end
+
+  def self.numero_de_codigo_exibicao(codigo)
+    return codigo.to_i if codigo.match?(/\A\d+\z/)
+
+    codigo.upcase.ord - 64
+  end
+
+  def codigo_exibicao
+    (numero + 64).chr
+  end
+
+  def nome_exibicao
+    "#{materia.nome} - Turma #{codigo_exibicao}"
+  end
+
   def departamento
     materia.departamento
   end

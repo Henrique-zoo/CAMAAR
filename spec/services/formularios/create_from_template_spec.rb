@@ -1,11 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Formularios::CreateFromTemplate do
-  let(:admin) { create_admin_usuario }
+  let(:departamento) { Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}") }
+  let(:admin) { create_admin_usuario(departamento: departamento) }
   let(:perfil_adm) { admin.perfil_adm }
-  let(:template) { create_template_with_questoes(titulo: "Avaliação Docente") }
-  let(:turma_a) { create_turma(nome_materia: "MDS", codigo_turma: "A") }
-  let(:turma_b) { create_turma(nome_materia: "IHC", codigo_turma: "B") }
+  let(:template) { create_template_with_questoes(titulo: "Avaliação Docente", adm: perfil_adm) }
+  let(:turma_a) { create_turma(nome_materia: "MDS", numero: 1, departamento: departamento) }
+  let(:turma_b) { create_turma(nome_materia: "IHC", numero: 2, departamento: departamento) }
 
   describe ".call" do
     it "cria um formulário por turma selecionada" do
@@ -17,8 +18,8 @@ RSpec.describe Formularios::CreateFromTemplate do
 
       expect(formularios.size).to eq(2)
       expect(Formulario.count).to eq(2)
-      expect(turma_a.reload.formulario).to eq(formularios.first)
-      expect(turma_b.reload.formulario).to eq(formularios.second)
+      expect(turma_a.reload.formularios.sole).to eq(formularios.first)
+      expect(turma_b.reload.formularios.sole).to eq(formularios.second)
     end
 
     it "copia as questões do template como snapshot independente" do
@@ -29,12 +30,12 @@ RSpec.describe Formularios::CreateFromTemplate do
       )
 
       formulario = formularios.first
-      questoes_template = template.questoes.order(:posicao)
-      questoes_formulario = formulario.questoes.order(:posicao)
+      questoes_template = questoes_ordenadas_do_template(template)
+      questoes_formulario = formulario.questoes.order(:id)
 
       expect(questoes_formulario.count).to eq(questoes_template.count)
-      expect(questoes_formulario.pluck(:enunciado)).to eq(questoes_template.pluck(:enunciado))
-      expect(questoes_formulario.pluck(:tipo)).to eq(questoes_template.pluck(:tipo))
+      expect(questoes_formulario.pluck(:enunciado)).to eq(questoes_template.map(&:enunciado))
+      expect(questoes_formulario.pluck(:tipo)).to eq(questoes_template.map(&:tipo))
 
       questao_template = questoes_template.first
       questao_formulario = questoes_formulario.first
@@ -53,7 +54,7 @@ RSpec.describe Formularios::CreateFromTemplate do
       )
 
       questao_objetiva = formularios.first.questoes.find_by(tipo: :objetiva)
-      expect(questao_objetiva.opcoes.pluck(:texto)).to eq(%w[Ruim Regular Boa Excelente])
+      expect(questao_objetiva.opcoes.order(:numero).pluck(:texto)).to eq(%w[Ruim Regular Boa Excelente])
     end
 
     it "faz rollback se a criação de um formulário falhar" do
@@ -75,8 +76,8 @@ RSpec.describe Formularios::CreateFromTemplate do
       end.to raise_error(ActiveRecord::RecordInvalid)
 
       expect(Formulario.count).to eq(0)
-      expect(turma_a.reload.formulario_id).to be_nil
-      expect(turma_b.reload.formulario_id).to be_nil
+      expect(turma_a.reload.formularios).to be_empty
+      expect(turma_b.reload.formularios).to be_empty
     end
 
     it "levanta erro quando nenhuma turma é selecionada" do

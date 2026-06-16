@@ -6,7 +6,7 @@ RSpec.describe Formulario, type: :model do
       formulario = described_class.new
 
       expect(formulario).not_to be_valid
-      expect(formulario.errors[:perfil_adm]).to include("must exist")
+      expect(formulario.errors[:adm]).to include("must exist")
     end
   end
 end

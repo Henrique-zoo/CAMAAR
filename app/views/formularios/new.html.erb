@@ -12,7 +12,7 @@
   <div>
     <label for="template_id">Template</label>
     <%= select_tag :template_id,
-                   options_from_collection_for_select(@templates, :id, :nome),
+                   options_from_collection_for_select(@templates, :id, :titulo),
                    prompt: "Selecione um template" %>
   </div>
 

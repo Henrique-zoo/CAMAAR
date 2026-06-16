@@ -18,6 +18,11 @@ class Formulario < ApplicationRecord
     optional: true,
     inverse_of: :formularios
 
+  has_many :questoes,
+    class_name: "Questao",
+    dependent: :destroy,
+    inverse_of: :formulario
+
   has_many :avaliacoes,
     class_name: "Avaliacao",
     dependent: :restrict_with_error,
