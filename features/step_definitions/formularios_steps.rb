@@ -1,3 +1,26 @@
+Dado("que existem formulários criados para o semestre atual") do
+  @admin ||= criar_administrador
+  @template = criar_template_com_questoes(titulo: "Avaliação de Disciplina")
+  @turma_a = criar_turma(nome_materia: "Estrutura de Dados", numero: 1)
+  @turma_b = criar_turma(nome_materia: "Banco de Dados", numero: 2)
+  @formularios = [
+    criar_formulario_publicado(turma: @turma_a, template: @template, publico_alvo: :docentes),
+    criar_formulario_publicado(turma: @turma_b, template: @template, publico_alvo: :discentes)
+  ]
+end
+
+Dado("que nenhum formulário foi gerado para o semestre vigente") do
+  @admin ||= criar_administrador
+  turma_passado = criar_turma(
+    nome_materia: "Disciplina Anterior",
+    numero: 1,
+    ano: Date.current.year - 1,
+    semestre: :segundo
+  )
+  criar_formulario_publicado(turma: turma_passado, publico_alvo: :docentes)
+  expect(Formulario.do_semestre_atual.count).to eq(0)
+end
+
 Dado("que existe um template cadastrado chamado {string}") do |titulo|
   @admin ||= criar_administrador
   @template = criar_template_com_questoes(titulo: titulo)
@@ -63,6 +86,14 @@ Quando("confirmo a publicação do formulário") do
   click_button "Confirmar Publicação"
 end
 
+Quando("eu acesso o painel de gerenciamento de formulários") do
+  visit formularios_path
+end
+
+Quando("eu acesso a página de formulários criados") do
+  visit formularios_path
+end
+
 Então("o formulário deve ser gerado com sucesso para ambas as turmas") do
   expect(Formulario.count).to eq(2)
 
@@ -81,6 +112,29 @@ Então("o formulário deve ser gerado com sucesso para ambas as turmas") do
     expect(questoes_formulario.count).to eq(questoes_template.count)
     expect(questoes_formulario.pluck(:enunciado)).to eq(questoes_template.map(&:enunciado))
   end
+end
+
+Então("eu devo ver uma lista com todos os formulários criados, exibindo o template base, a turma e o público-alvo de cada um") do
+  expect(page).to have_css("table tbody tr", count: @formularios.size)
+
+  @formularios.each do |formulario|
+    expect(page).to have_content(formulario.template.titulo)
+    expect(page).to have_content(formulario.turma.nome_exibicao)
+    publico_label = formulario.docentes? ? "Docentes" : "Discentes"
+    expect(page).to have_content(publico_label)
+  end
+end
+
+Então("cada formulário listado deve exibir um botão {string}") do |texto_botao|
+  expect(page).to have_button(texto_botao, count: @formularios.size)
+end
+
+Então("eu devo ver a listagem vazia") do
+  expect(page).not_to have_css("table tbody tr")
+end
+
+Então("a mensagem {string} deve ser exibida na tela") do |mensagem|
+  expect(page).to have_content(mensagem)
 end
 
 Então("devo ver a mensagem {string}") do |mensagem|
@@ -139,6 +193,11 @@ Então("o formulário deve ficar disponível apenas para os professores vinculad
   login_como(docente)
   visit avaliacoes_pendentes_path
   expect(page).to have_content(turma.nome_exibicao)
+end
+
+def criar_formulario_publicado(turma:, template: nil, publico_alvo: :docentes)
+  template ||= criar_template_com_questoes(titulo: "Avaliação de teste")
+  Formulario.create!(adm: @admin.perfil_adm, turma: turma, template: template, publico_alvo: publico_alvo)
 end
 
 def criar_turma_do_nome_exibicao(nome_exibicao)
