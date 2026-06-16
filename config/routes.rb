@@ -12,7 +12,7 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
 
-  resources :formularios, only: %i[new create] do
+  resources :formularios, only: %i[index new create] do
     collection do
       post :preparar
       get :publicar
