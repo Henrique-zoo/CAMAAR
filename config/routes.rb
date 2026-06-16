@@ -5,9 +5,14 @@ Rails.application.routes.draw do
     collection do
       get 'pendentes'
     end
-    member do          # ← apenas isso é novo
+    member do          
       get  'responder'
       post 'submeter'
+    end
+  end
+  resources :formularios do
+    member do
+      get 'exportar_csv'
     end
   end
 end
