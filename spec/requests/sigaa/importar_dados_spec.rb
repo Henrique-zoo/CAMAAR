@@ -73,7 +73,7 @@ RSpec.describe "Importação de Dados SIGAA", type: :request do
             "nome" => "Rafael Sapienza",
             "email" => "rafael@unb.br",
             "turmas_matriculadas" => [
-              { "materia_codigo" => "CIC0001", "numero_turma" => 999 } 
+              { "materia_codigo" => "CIC0001", "numero_turma" => 999 }
             ]
           }
         ]
@@ -88,7 +88,7 @@ RSpec.describe "Importação de Dados SIGAA", type: :request do
 
       expect(response).to redirect_to(gerenciamento_path)
       expect(flash[:error]).to eq("A importação foi concluída parcialmente.")
-      
+
       expect(flash[:error_list]).to include(
         "Discente Rafael Sapienza (Matrícula: 26100001): Turma nº 999 da matéria 'Estruturas de Dados' não foi localizada no sistema."
       )
