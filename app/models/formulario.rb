@@ -45,6 +45,10 @@ class Formulario < ApplicationRecord
       .where(materias: { departamento_id: departamento.id })
   }
 
+  scope :do_semestre_atual, -> {
+    joins(:turma).merge(Turma.do_semestre_atual)
+  }
+
   def participacoes_alvo
     return turma.participantes_docentes if docentes?
     return turma.participantes_discentes if discentes?
