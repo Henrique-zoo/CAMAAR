@@ -6,6 +6,25 @@
 # and recreated between test runs. Don't rely on the data there!
 
 Rails.application.configure do
+  config.credentials.content_path = Rails.root.join("config/credentials/test.yml.enc")
+
+  config.secret_key_base = ENV.fetch(
+    "SECRET_KEY_BASE",
+    "87d55b80c895022b084f8b55e8b3eb1f75c0e1fbc7895072da3c9f8210487dcb"
+  )
+  config.active_record.encryption.primary_key = ENV.fetch(
+    "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY",
+    "759c58ecbf7a7691715941fd53d481981ac6543f140b12c8217887798f4d5134"
+  )
+  config.active_record.encryption.deterministic_key = ENV.fetch(
+    "ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY",
+    "fba2c4ed3304d9c8b75cdb49af69a72c976ecf7873af5d133b7e36dfc00f305c"
+  )
+  config.active_record.encryption.key_derivation_salt = ENV.fetch(
+    "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT",
+    "4b6ecb24cb298616838f26d7874db8ef"
+  )
+
   # Configure 'rails notes' to inspect Cucumber files
   config.annotations.register_directories("features")
   config.annotations.register_extensions("feature") { |tag| /#\s*(#{tag}):?\s*(.*)$/ }

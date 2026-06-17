@@ -1,14 +1,25 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe "Importação de Dados SIGAA", type: :request do
-  let(:usuario_admin) { double("UsuarioAdmin", id: 99, admin?: true, nome: "Admin", matricula: "654321", email: "admin@unb.br") }
+  let(:usuario_administrador) do
+    double(
+      "UsuarioAdministrador",
+      id: 99,
+      administrador?: true,
+      nome: "Administrador",
+      matricula: "654321",
+      email: "administrador@unb.br"
+    )
+  end
   let(:caminho_arquivo) { Rails.root.join("db", "usuarios_sigaa.json") }
 
   before do
-    Departamento.find_or_create_by!(id: 1)
-    Departamento.find_or_create_by!(id: 2)
+    Departamento.find_or_create_by!(id: 1) { |departamento| departamento.nome = "Departamento 1" }
+    Departamento.find_or_create_by!(id: 2) { |departamento| departamento.nome = "Departamento 2" }
 
-    allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_admin)
+    allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_administrador)
   end
   describe "POST /importar_dados - Arquivo inexistente" do
     it "redireciona para o gerenciamento avisando que o arquivo sumiu" do

@@ -1,4 +1,6 @@
-require 'rails_helper'
+# frozen_string_literal: true
+
+require "rails_helper"
 
 RSpec.describe "Dashboard - Enviar Solicitações de Cadastro", type: :request do
   let!(:departamento) { Departamento.create!(nome: "Ciência da Computação") }
@@ -15,14 +17,14 @@ RSpec.describe "Dashboard - Enviar Solicitações de Cadastro", type: :request d
   let!(:perfil_adm) { PerfilAdm.create!(usuario: admin_user, departamento: departamento) }
 
   before do
-    allow(admin_user).to receive(:admin?).and_return(true)
+    allow(admin_user).to receive(:administrador?).and_return(true)
     allow_any_instance_of(DashboardController).to receive(:current_user).and_return(admin_user)
   end
 
   describe "POST /dashboard/enviar_solicitacoes" do
     context "quando o filtro 'verificar_admin' barra o acesso" do
       before do
-        allow(admin_user).to receive(:admin?).and_return(false)
+        allow(admin_user).to receive(:administrador?).and_return(false)
       end
 
       it "limpa a sessão e redireciona o intruso para a raiz com mensagem restrita" do
@@ -82,7 +84,8 @@ RSpec.describe "Dashboard - Enviar Solicitações de Cadastro", type: :request d
         PerfilDocente.create!(usuario: docente_pendente, departamento: departamento)
         materia = Materia.create!(nome: "Estruturas de Dados", codigo: "CIC0001", departamento_id: departamento.id)
         turma = Turma.create!(materia: materia, numero: 1, ano: 2026, semestre: 1)
-        ParticipacaoTurma.create!(usuario: discente_pendente, turma: turma)
+        PerfilDiscente.create!(usuario: discente_pendente)
+        ParticipacaoTurma.create!(usuario: discente_pendente, turma: turma, tipo_participacao: :discente)
       end
 
       context "e todos os envios de e-mail ocorrem perfeitamente" do

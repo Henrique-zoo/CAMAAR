@@ -36,6 +36,11 @@ class Usuario < ApplicationRecord
 
   has_many :templates_criados, through: :perfil_adm, source: :templates
 
+  has_many :tokens,
+    class_name: "Token",
+    inverse_of: :usuario,
+    dependent: :destroy
+
   before_validation :normalizar_email
   before_validation :normalizar_matricula
 

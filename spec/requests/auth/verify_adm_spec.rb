@@ -1,9 +1,29 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe "Dashboard", type: :request do
-  # ADICIONADO O CAMPO EMAIL NOS MOCKS ABAIXO
-  let(:usuario_comum) { double("UsuarioComum", id: 2, admin?: false, nome: "Rafael", matricula: "123456", email: "rafael@email.com") }
-  let(:usuario_admin) { double("UsuarioAdmin", id: 3, admin?: true, nome: "Admin", matricula: "654321", email: "admin@email.com") }
+  let(:usuario_comum) do
+    double(
+      "UsuarioComum",
+      id: 2,
+      administrador?: false,
+      nome: "Rafael",
+      matricula: "123456",
+      email: "rafael@email.com"
+    )
+  end
+
+  let(:usuario_administrador) do
+    double(
+      "UsuarioAdministrador",
+      id: 3,
+      administrador?: true,
+      nome: "Administrador",
+      matricula: "654321",
+      email: "administrador@email.com"
+    )
+  end
 
   describe "GET /dashboard (index)" do
     it "redireciona para root se o usuário não estiver logado" do
@@ -35,7 +55,7 @@ RSpec.describe "Dashboard", type: :request do
     end
 
     it "permite que o administrador acesse a página de gerenciamento" do
-      allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_admin)
+      allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_administrador)
 
       get gerenciamento_path
 
@@ -53,7 +73,7 @@ RSpec.describe "Dashboard", type: :request do
     end
 
     it "EXIBE o link de Gerenciamento para usuários administradores" do
-      allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_admin)
+      allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_administrador)
 
       get avaliacoes_path
 

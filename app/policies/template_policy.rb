@@ -10,11 +10,11 @@ class TemplatePolicy < ApplicationPolicy
   end
 
   def index?
-    adm?
+    administrador?
   end
 
   def show?
-    adm?
+    administrador?
   end
 
   def new?
@@ -22,7 +22,7 @@ class TemplatePolicy < ApplicationPolicy
   end
 
   def create?
-    adm?
+    administrador?
   end
 
   def edit?
@@ -38,12 +38,12 @@ class TemplatePolicy < ApplicationPolicy
   end
 
   def use?
-    adm?
+    administrador?
   end
 
   private
 
   def dono_do_template?
-    adm? && record.criado_por?(current_adm)
+    administrador? && record.criado_por?(current_administrador)
   end
 end

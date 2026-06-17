@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe "Fluxo de Cadastro (Primeiro Acesso)", type: :request do
@@ -6,7 +8,7 @@ RSpec.describe "Fluxo de Cadastro (Primeiro Acesso)", type: :request do
       matricula: "26100001",
       nome: "Rafael Sapienza",
       email: "rafael@unb.br",
-      status: 0,
+      status: :pendente,
       senha: "vazia_inicialmente"
     )
   end
@@ -32,8 +34,8 @@ RSpec.describe "Fluxo de Cadastro (Primeiro Acesso)", type: :request do
       expect(flash[:error]).to eq("O e-mail informado não corresponde ao e-mail institucional desta matrícula.")
     end
 
-    it "rejeita se a matrícula já possuir um cadastro ativo (status == 1)" do
-      usuario_institucional.update!(status: 1)
+    it "rejeita se a matrícula já possuir um cadastro ativo" do
+      usuario_institucional.update!(status: :ativo)
 
       post cadastro_path, params: { matricula: "26100001", email: "rafael@unb.br" }
 
@@ -103,12 +105,12 @@ RSpec.describe "Fluxo de Cadastro (Primeiro Acesso)", type: :request do
       expect(flash[:error]).to eq("O link de confirmação é inválido, expirou ou não corresponde a esta operação.")
     end
 
-    it "salva a nova senha, muda status para 1 ativo e destrói o token usado" do
+    it "salva a nova senha, ativa o cadastro e destrói o token usado" do
       expect {
         post confirmar_cadastro_path, params: { token: "token_secreto_123", senha: "senha123", senha_confirmacao: "senha123" }
       }.to change(Token, :count).by(-1)
       usuario_institucional.reload
-      expect(usuario_institucional.status).to eq(1)
+      expect(usuario_institucional).to be_ativo
 
       expect(response).to redirect_to(root_path)
       expect(flash[:success]).to eq("Cadastro concluído com sucesso! Faça seu login.")

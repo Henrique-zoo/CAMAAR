@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class TemplatesController < ApplicationController
-  before_action :authenticate_usuario!
+  before_action :authenticate_user!
   before_action :set_template, only: %i[show edit update destroy]
 
   def index
@@ -11,8 +11,8 @@ class TemplatesController < ApplicationController
       .includes(adm: :usuario)
       .recentes
 
-    @user_templates = templates.criados_por(current_adm)
-    @other_templates = templates.criados_por_outros(current_adm)
+    @user_templates = templates.criados_por(current_administrador)
+    @other_templates = templates.criados_por_outros(current_administrador)
   end
 
   def show
@@ -20,7 +20,7 @@ class TemplatesController < ApplicationController
   end
 
   def new
-    @template = Template.new(adm: current_adm)
+    @template = Template.new(adm: current_administrador)
     preparar_campos_do_formulario
 
     authorize! @template
@@ -28,7 +28,7 @@ class TemplatesController < ApplicationController
 
   def create
     @template = Template.new(template_params)
-    @template.adm = current_adm
+    @template.adm = current_administrador
 
     authorize! @template
 

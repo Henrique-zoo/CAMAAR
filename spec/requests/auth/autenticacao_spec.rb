@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe "Autenticacao", type: :request do
@@ -7,7 +9,7 @@ RSpec.describe "Autenticacao", type: :request do
       id: 42,
       email: "rafael@email.com",
       matricula: "123456789",
-      status: 1
+      ativo?: true
     )
   end
 
@@ -42,8 +44,8 @@ RSpec.describe "Autenticacao", type: :request do
       expect(flash[:error]).to eq("Matrícula ou e-mail inválido.")
     end
 
-    it "falha se a conta do usuário não estiver ativa (status diferente de 1)" do
-      usuario_inativo = double("UsuarioInativo", status: 0)
+    it "falha se a conta do usuário não estiver ativa" do
+      usuario_inativo = double("UsuarioInativo", ativo?: false)
       allow(Usuario).to receive(:find_by).with(matricula: "123").and_return(usuario_inativo)
 
       post login_path, params: { identificador: "123", senha: "uma_senha" }

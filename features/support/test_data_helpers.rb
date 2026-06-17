@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module TestDataHelpers
   def criar_administrador(**attrs)
     departamento = attrs[:departamento] || Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}")
@@ -5,6 +7,7 @@ module TestDataHelpers
     defaults = {
       nome: "Administrador",
       email: "#{SecureRandom.hex(4)}@example.com",
+      matricula: "ADM#{SecureRandom.hex(5)}",
       status: :ativo,
       senha: "senha12345"
     }
@@ -29,9 +32,11 @@ module TestDataHelpers
 
       questao = Questao.new(attrs)
 
-      Array(opcoes).each_with_index do |texto, opcao_index|
-        questao.opcoes.build(numero: opcao_index + 1, texto: texto)
-      end if opcoes.present?
+      if opcoes.present?
+        Array(opcoes).each_with_index do |texto, opcao_index|
+          questao.opcoes.build(numero: opcao_index + 1, texto: texto)
+        end
+      end
 
       questao.save!
 
@@ -60,7 +65,7 @@ module TestDataHelpers
   end
 
   def login_como(usuario)
-    allow_any_instance_of(ApplicationController).to receive(:current_usuario).and_return(usuario)
+    definir_usuario_atual(usuario)
   end
 
   def questoes_ordenadas_do_template(template)

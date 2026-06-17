@@ -3,6 +3,25 @@
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
+  config.credentials.content_path = Rails.root.join("config/credentials/development.yml.enc")
+
+  config.secret_key_base = ENV.fetch(
+    "SECRET_KEY_BASE",
+    "5d25b450527337423b792b3d6af570ac0b2c6066c76aecefc960473fd7ec61f4"
+  )
+  config.active_record.encryption.primary_key = ENV.fetch(
+    "ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY",
+    "0fc48ac284dff81eb93cdef7125bbaf41b6cf26c0ba7f0a81016b2102043c5a7"
+  )
+  config.active_record.encryption.deterministic_key = ENV.fetch(
+    "ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY",
+    "a90dd2dabf82592fddad2f061de507b36904c4a89ba981f3012ed7a0af99afe8"
+  )
+  config.active_record.encryption.key_derivation_salt = ENV.fetch(
+    "ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT",
+    "f014e7148a3a179101f850e536a858fd"
+  )
+
   # Configure 'rails notes' to inspect Cucumber files
   config.annotations.register_directories("features")
   config.annotations.register_extensions("feature") { |tag| /#\s*(#{tag}):?\s*(.*)$/ }

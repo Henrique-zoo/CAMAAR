@@ -1,6 +1,6 @@
 <% if flash[:success] %>
   <div style="background-color: #d4edda; color: #155724; padding: 12px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px auto; max-width: 350px; text-align: center; font-family: sans-serif;">
-    <%= flash[:success]&.html_safe %>
+    <%= sanitize(flash[:success]) %>
   </div>
 <% end %>
 
@@ -11,9 +11,9 @@
 <% end %>
 
 <div class="container-autenticacao" style="display: flex; gap: 40px; align-items: center; justify-content: center; margin-top: 50px;">
-  
+
   <div class="card-login" style="border: 1px solid #ccc; padding: 30px; border-radius: 8px; width: 350px;">
-    
+
     <h2 style="margin-top: 0; margin-bottom: 20px; color: #333; font-size: 22px;">Criar Sua Senha</h2>
     <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
       Quase lá! Defina a senha de acesso para a sua conta do CAMAAR.
@@ -21,17 +21,17 @@
 
     <form action="/cadastro/confirmar" method="POST">
       <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-      
+
       <input type="hidden" name="token" value="<%= params[:token] %>">
 
       <div class="campo-formulario" style="margin-bottom: 15px;">
         <label for="password" style="display: block; margin-bottom: 5px; font-weight: bold;">Senha:</label>
-        <input type="password" id="password" name="senha" placeholder="No mínimo 6 caracteres" style="width: 100%; padding: 8px; box-sizing: border-box;">
+        <input type="password" id="password" name="senha" placeholder="No mínimo 6 caracteres" style="width: 100%; padding: 8px; box-sizing: border-box;" autocomplete="new-password">
       </div>
 
       <div class="campo-formulario" style="margin-bottom: 25px;">
         <label for="password_confirmation" style="display: block; margin-bottom: 5px; font-weight: bold;">Confirme a Senha:</label>
-        <input type="password" id="password_confirmation" name="senha_confirmacao" placeholder="Digite a senha novamente" style="width: 100%; padding: 8px; box-sizing: border-box;">
+        <input type="password" id="password_confirmation" name="senha_confirmacao" placeholder="Digite a senha novamente" style="width: 100%; padding: 8px; box-sizing: border-box;" autocomplete="new-password">
       </div>
 
       <button type="submit" style="width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">

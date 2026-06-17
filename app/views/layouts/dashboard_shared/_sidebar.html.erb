@@ -4,7 +4,7 @@
       <%= link_to "Avaliações", avaliacoes_path %>
     </li>
 
-    <% if current_user&.admin? %>
+    <% if current_user&.administrador? %>
       <li class="<%= 'active' if current_page?(gerenciamento_path) %>">
         <%= link_to "Gerenciamento", gerenciamento_path %>
       </li>

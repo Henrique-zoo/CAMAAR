@@ -1,6 +1,6 @@
 <% if flash[:success] %>
   <div style="background-color: #d4edda; color: #155724; padding: 12px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px auto; max-width: 350px; text-align: center; font-family: sans-serif;">
-    <%= flash[:success]&.html_safe %>
+    <%= sanitize(flash[:success]) %>
   </div>
 <% end %>
 
@@ -28,14 +28,14 @@
     <header class="topbar">
       <button class="hamburger-btn" aria-label="Menu">&#9776;</button>
       <div class="search-container">
-        <input type="text" placeholder="Pesquisar...">
+        <input type="text" placeholder="Pesquisar..." autocomplete="off">
       </div>
-      
+
       <details class="user-dropdown">
         <summary class="user-avatar">
           <%= current_user&.nome&.first&.upcase || "U" %>
         </summary>
-        
+
         <div class="dropdown-menu">
           <div class="dropdown-info">
             <p class="user-name"><strong><%= current_user&.nome %></strong></p>
@@ -43,7 +43,7 @@
             <p class="user-detail">E-mail: <%= current_user&.email %></p>
           </div>
           <div class="dropdown-divider"></div>
-          
+
           <%= link_to "Sair da Conta", logout_path, data: { turbo_method: :delete }, class: "logout-btn" %>
         </div>
       </details>
@@ -53,11 +53,11 @@
       <div class="center-card">
         <%= link_to "Importar dados", importar_dados_path, data: { turbo_method: :post }, class: "btn-action btn-primary" %>
         <%= link_to "Enviar Solicitação de Cadastro (E-mail)", enviar_solicitacoes_path, data: { turbo_method: :post }, class: "btn-action btn-secondary" %>
-        
-        <%= link_to "Editar Templates", "#", class: "btn-action btn-secondary" %>
+
+        <%= link_to "Editar Templates", templates_path, class: "btn-action btn-secondary" %>
         <%= link_to "Resultados", "#", class: "btn-action btn-secondary" %>
       </div>
     </main>
-    
+
   </div>
 </div>

@@ -47,8 +47,12 @@ module CamaarWorld
     CucumberUsuarioAtual.usuario = usuario
   end
 
-  def adm_atual
+  def administrador_atual
     usuario_atual&.perfil_adm
+  end
+
+  def adm_atual
+    administrador_atual
   end
 
   def departamento_com_nome(nome)
@@ -88,7 +92,7 @@ module CamaarWorld
     departamento = departamento_com_nome(departamento)
     usuario = usuario_com_email(
       nome: "Administrador #{departamento.nome}",
-      email: "admin-#{departamento.id}@unb.br",
+      email: "administrador-#{departamento.id}@unb.br",
       senha: "Admin123"
     )
 
@@ -128,7 +132,7 @@ module CamaarWorld
   def usuario_nao_administrador
     usuario_participante(
       nome: "Usuário não administrador",
-      email: "nao-admin@unb.br",
+      email: "nao-administrador@unb.br",
       matricula: "232000000"
     )
   end
@@ -205,7 +209,7 @@ module CamaarWorld
   end
 
   def template_com_titulo(titulo, adm: nil, descricao: nil)
-    adm ||= adm_atual || usuario_administrador.perfil_adm
+    adm ||= administrador_atual || usuario_administrador.perfil_adm
 
     Template.find_by(titulo: titulo, adm: adm) || Template.create!(
       titulo: titulo,
@@ -224,7 +228,7 @@ module CamaarWorld
   end
 
   def formulario_para_turma(turma, template: nil, adm: nil)
-    adm ||= adm_atual || usuario_administrador(
+    adm ||= administrador_atual || usuario_administrador(
       departamento: turma.departamento.nome
     ).perfil_adm
     template ||= template_com_titulo("Template padrão", adm: adm)
@@ -251,7 +255,7 @@ end
 module CucumberApplicationAuthentication
   private
 
-  def current_usuario
+  def current_user
     CucumberUsuarioAtual.usuario || super
   end
 end

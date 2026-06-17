@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe Formularios::CreateFromTemplate do
@@ -103,7 +105,8 @@ RSpec.describe Formularios::CreateFromTemplate do
       ParticipacaoTurma.create!(usuario: docente, turma: turma_a, tipo_participacao: :docente)
 
       discente = create_usuario(nome: "Discente")
-      PerfilDiscente.create!(usuario: discente, matricula: "20260001")
+      discente.update!(matricula: "20260001")
+      PerfilDiscente.create!(usuario: discente)
       ParticipacaoTurma.create!(usuario: discente, turma: turma_a, tipo_participacao: :discente)
 
       formularios = call_service(turma_ids: [ turma_a.id ], publico_alvo: :docentes)

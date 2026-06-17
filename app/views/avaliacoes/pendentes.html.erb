@@ -20,9 +20,9 @@
     <tbody>
       <% @avaliacoes_pendentes.each do |avaliacao| %>
         <tr>
-          <td><%= avaliacao.formulario.turma.materia.nome %></td>
+          <td><%= avaliacao.formulario.turma.nome_exibicao %></td>
           <td>Não respondido</td>
-          <td><%= link_to 'Responder', responder_avaliacao_path(avaliacao) %></td>
+          <td><%= link_to "Responder", responder_avaliacao_path(avaliacao) %></td>
         </tr>
       <% end %>
     </tbody>

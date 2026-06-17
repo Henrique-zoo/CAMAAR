@@ -12,11 +12,11 @@ class ApplicationPolicy
     const_get(:Scope).new(usuario, scope).resolve
   end
 
-  def adm?
+  def administrador?
     usuario&.administrador?
   end
 
-  def current_adm
+  def current_administrador
     usuario&.perfil_adm
   end
 

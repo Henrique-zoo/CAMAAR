@@ -1,9 +1,12 @@
+# frozen_string_literal: true
+
 module TestBuilders
   def create_admin_usuario(**attrs)
     departamento = attrs[:departamento] || Departamento.create!(nome: "DCC #{SecureRandom.hex(2)}")
     defaults = {
       nome: "Administrador",
       email: "#{SecureRandom.hex(4)}@example.com",
+      matricula: "ADM#{SecureRandom.hex(5)}",
       status: :ativo,
       senha: "senha12345"
     }
@@ -16,6 +19,7 @@ module TestBuilders
     defaults = {
       nome: "Usuário",
       email: "#{SecureRandom.hex(4)}@example.com",
+      matricula: "USR#{SecureRandom.hex(5)}",
       status: :ativo,
       senha: "senha12345"
     }
@@ -34,9 +38,11 @@ module TestBuilders
 
       questao = Questao.new(attrs)
 
-      Array(opcoes).each_with_index do |texto, opcao_index|
-        questao.opcoes.build(numero: opcao_index + 1, texto: texto)
-      end if opcoes.present?
+      if opcoes.present?
+        Array(opcoes).each_with_index do |texto, opcao_index|
+          questao.opcoes.build(numero: opcao_index + 1, texto: texto)
+        end
+      end
 
       questao.save!
 
@@ -76,7 +82,8 @@ module TestBuilders
 
   def create_perfil_discente(usuario, matricula: nil, **attrs)
     matricula ||= "2026#{SecureRandom.hex(4)}"
-    PerfilDiscente.create!(id: usuario.id, usuario: usuario, matricula: matricula, **attrs)
+    usuario.update!(matricula: matricula) if usuario.matricula != matricula
+    PerfilDiscente.create!(id: usuario.id, usuario: usuario, **attrs)
     usuario
   end
 

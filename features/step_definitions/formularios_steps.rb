@@ -1,5 +1,19 @@
+# frozen_string_literal: true
+
+def administrador_formularios
+  @admin ||= usuario_atual || estado[:usuario_administrador] || usuario_administrador
+  @departamento = @admin.perfil_adm.departamento
+  @admin
+end
+
+def preparar_sessao_formulario(template:, turmas:)
+  page.driver.post preparar_formularios_path,
+    template_id: template.id,
+    turma_ids: turmas.map(&:id)
+end
+
 Dado("que existem formulários criados para o semestre atual") do
-  @admin ||= criar_administrador
+  administrador_formularios
   @template = criar_template_com_questoes(titulo: "Avaliação de Disciplina")
   @turma_a = criar_turma(nome_materia: "Estrutura de Dados", numero: 1)
   @turma_b = criar_turma(nome_materia: "Banco de Dados", numero: 2)
@@ -10,7 +24,7 @@ Dado("que existem formulários criados para o semestre atual") do
 end
 
 Dado("que nenhum formulário foi gerado para o semestre vigente") do
-  @admin ||= criar_administrador
+  administrador_formularios
   turma_passado = criar_turma(
     nome_materia: "Disciplina Anterior",
     numero: 1,
@@ -22,7 +36,7 @@ Dado("que nenhum formulário foi gerado para o semestre vigente") do
 end
 
 Dado("que existe um template cadastrado chamado {string}") do |titulo|
-  @admin ||= criar_administrador
+  administrador_formularios
   @template = criar_template_com_questoes(titulo: titulo)
 end
 
@@ -36,7 +50,7 @@ Dado("que estou na página de criação de formulários") do
 end
 
 Dado("que selecionei o template {string}") do |titulo|
-  @admin ||= criar_administrador
+  administrador_formularios
   @template = criar_template_com_questoes(titulo: titulo)
 end
 
@@ -64,7 +78,7 @@ Quando("não seleciono nenhuma turma") do
   end
 end
 
-Quando("clico em {string}") do |botao|
+Quando(/^clico em "(Continuar|Confirmar Publicação)"$/) do |botao|
   click_button botao
 end
 
@@ -137,8 +151,8 @@ Então("a mensagem {string} deve ser exibida na tela") do |mensagem|
   expect(page).to have_content(mensagem)
 end
 
-Então("devo ver a mensagem {string}") do |mensagem|
-  expect(page).to have_content(mensagem)
+Então(/^devo ver a mensagem "Formulário criado com sucesso para as turmas selecionadas"$/) do
+  expect(page).to have_content("Formulário criado com sucesso para as turmas selecionadas")
 end
 
 Então("eu devo ver uma mensagem de erro dizendo {string}") do |mensagem|
@@ -162,8 +176,8 @@ Então("o formulário deve ficar disponível apenas para os alunos matriculados 
   formulario = turma.reload.formularios.sole
   expect(formulario.publico_alvo).to eq("discentes")
 
-  discente = criar_participante
-  criar_participacao(usuario: discente, turma: turma, tipo_participacao: :discente)
+  discente = usuario_participante(email: "discente-formulario@unb.br")
+  ParticipacaoTurma.create!(usuario: discente, turma: turma, tipo_participacao: :discente)
   formulario.criar_avaliacoes_pendentes!
 
   login_como(discente)
@@ -173,8 +187,8 @@ end
 
 Então("os docentes da turma não devem ter acesso para responder a este formulário") do
   turma = @turma || turma_por_referencia("Estrutura de Dados - Turma C")
-  docente = criar_participante(tipo: :docente, departamento: turma.departamento)
-  criar_participacao(usuario: docente, turma: turma, tipo_participacao: :docente)
+  docente = usuario_docente(email: "docente-formulario@unb.br", departamento: turma.departamento)
+  ParticipacaoTurma.create!(usuario: docente, turma: turma, tipo_participacao: :docente)
 
   login_como(docente)
   visit avaliacoes_pendentes_path
@@ -186,8 +200,8 @@ Então("o formulário deve ficar disponível apenas para os professores vinculad
   formulario = turma.reload.formularios.sole
   expect(formulario.publico_alvo).to eq("docentes")
 
-  docente = criar_participante(tipo: :docente, departamento: turma.departamento)
-  criar_participacao(usuario: docente, turma: turma, tipo_participacao: :docente)
+  docente = usuario_docente(email: "docente-formulario@unb.br", departamento: turma.departamento)
+  ParticipacaoTurma.create!(usuario: docente, turma: turma, tipo_participacao: :docente)
   formulario.criar_avaliacoes_pendentes!
 
   login_como(docente)
@@ -197,7 +211,12 @@ end
 
 def criar_formulario_publicado(turma:, template: nil, publico_alvo: :docentes)
   template ||= criar_template_com_questoes(titulo: "Avaliação de teste")
-  Formulario.create!(adm: @admin.perfil_adm, turma: turma, template: template, publico_alvo: publico_alvo)
+  Formulario.create!(
+    adm: administrador_formularios.perfil_adm,
+    turma: turma,
+    template: template,
+    publico_alvo: publico_alvo
+  )
 end
 
 def criar_turma_do_nome_exibicao(nome_exibicao)

@@ -76,7 +76,7 @@ When(/^eu clico em "([^"]+)"$/) do |acao|
   end
 end
 
-When(/^clico em "([^"]+)"$/) do |acao|
+When(/^clico em "(Definir Senha|Enviar link de recuperação|Atualizar Senha)"$/) do |acao|
   pendente_por_app_incompleto!("ação '#{acao}'")
 end
 
@@ -120,8 +120,12 @@ Then(/^eu devo ser redirecionado para a página de solicitação de recuperaçã
   pendente_por_app_incompleto!("recuperação de senha")
 end
 
-Then(/^devo ver a mensagem "([^"]+)"$/) do |mensagem|
-  expect(estado[:mensagens]).to include(mensagem)
+Then(/^devo ver a mensagem "Um link de redefinição foi enviado para o seu e-mail"$/) do
+  pendente_por_app_incompleto!("mensagem de solicitação de recuperação de senha")
+end
+
+Then(/^devo ver a mensagem "Cadastro ativado com sucesso!"$/) do
+  pendente_por_app_incompleto!("mensagem de ativação de cadastro")
 end
 
 Then(/^devo ver a mensagem de erro "([^"]+)"$/) do |mensagem|

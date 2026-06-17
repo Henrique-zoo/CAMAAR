@@ -1,12 +1,12 @@
 require "rails_helper"
 
 RSpec.describe "Templates", type: :request do
-  let(:current_adm) { double("PerfilAdm", id: 1) }
-  let(:current_usuario) do
+  let(:current_administrador) { double("PerfilAdm", id: 1) }
+  let(:current_user) do
     double(
       "Usuario",
       administrador?: true,
-      perfil_adm: current_adm
+      perfil_adm: current_administrador
     )
   end
   let(:template) do
@@ -21,12 +21,12 @@ RSpec.describe "Templates", type: :request do
   before do
     allow(template).to receive(:persisted?).and_return(true)
     allow_any_instance_of(ApplicationController)
-      .to receive(:current_usuario)
-      .and_return(current_usuario)
+      .to receive(:current_user)
+      .and_return(current_user)
 
     allow_any_instance_of(ApplicationController)
-      .to receive(:current_adm)
-      .and_return(current_adm)
+      .to receive(:current_administrador)
+      .and_return(current_administrador)
 
     allow_any_instance_of(ApplicationController)
       .to receive(:authorize!)
@@ -53,11 +53,11 @@ RSpec.describe "Templates", type: :request do
       allow(included_scope).to receive(:recentes).and_return(ordered_scope)
       allow(ordered_scope)
         .to receive(:criados_por)
-        .with(current_adm)
+        .with(current_administrador)
         .and_return([])
       allow(ordered_scope)
         .to receive(:criados_por_outros)
-        .with(current_adm)
+        .with(current_administrador)
         .and_return([])
 
       get templates_path
@@ -73,7 +73,7 @@ RSpec.describe "Templates", type: :request do
       allow(new_template).to receive(:questoes).and_return([])
       allow(Template)
         .to receive(:new)
-        .with(adm: current_adm)
+        .with(adm: current_administrador)
         .and_return(new_template)
 
       get new_template_path

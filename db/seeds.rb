@@ -74,7 +74,7 @@ dados['usuarios_admin'].each do |admin_json|
       turma = Turma.find_by(materia_id: materia.id, numero: mat_json['numero_turma'], ano: 2026, semestre: 1)
       raise "Turma nº #{mat_json['numero_turma']} da matéria '#{materia.nome}' não encontrada para o admin #{admin_json['matricula']}." if turma.nil?
 
-      ParticipacaoTurma.find_or_create_by!(usuario_id: usuario.id, turma_id: turma.id)
+      ParticipacaoTurma.find_or_create_by!(usuario_id: usuario.id, turma_id: turma.id, tipo_participacao: :discente)
     end
 
   else

@@ -20,14 +20,14 @@
           <label>
             <input type="radio"
                    name="respostas[<%= questao.id %>][opcao_id]"
-                   value="<%= opcao.id %>" />
+                   value="<%= opcao.id %>">
             <%= opcao.texto %>
-          </label><br/>
+          </label><br>
         <% end %>
       <% end %>
     </div>
-    <hr/>
+    <hr>
   <% end %>
 
-  <input type="submit" value="Confirmar envio" />
+  <input type="submit" value="Confirmar envio">
 <% end %>

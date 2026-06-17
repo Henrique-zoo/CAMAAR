@@ -1,6 +1,6 @@
 <% if flash[:success] %>
   <div style="background-color: #d4edda; color: #155724; padding: 12px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px auto; max-width: 350px; text-align: center; font-family: sans-serif;">
-    <%= flash[:success]&.html_safe %>
+    <%= sanitize(flash[:success]) %>
   </div>
 <% end %>
 
@@ -10,9 +10,9 @@
   </div>
 <% end %>
 <div class="container-autenticacao" style="display: flex; gap: 40px; align-items: center; justify-content: center; margin-top: 50px;">
-  
+
   <div class="card-login" style="border: 1px solid #ccc; padding: 30px; border-radius: 8px; width: 350px;">
-    
+
     <h2 style="margin-top: 0; margin-bottom: 20px; color: #333; font-size: 22px;">Primeiro Acesso</h2>
     <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
       Insira seus dados para receber o link de ativação da sua conta.
@@ -20,15 +20,15 @@
 
     <form action="<%= cadastro_path %>" method="POST">
       <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-      
+
       <div class="campo-formulario" style="margin-bottom: 15px;">
         <label for="matricula" style="display: block; margin-bottom: 5px; font-weight: bold;">Matrícula:</label>
-        <input type="text" id="matricula" name="matricula" placeholder="Digite sua matrícula do SIGAA" style="width: 100%; padding: 8px; box-sizing: border-box;">
+        <input type="text" id="matricula" name="matricula" placeholder="Digite sua matrícula do SIGAA" style="width: 100%; padding: 8px; box-sizing: border-box;" autocomplete="username">
       </div>
 
       <div class="campo-formulario" style="margin-bottom: 20px;">
         <label for="email" style="display: block; margin-bottom: 5px; font-weight: bold;">E-mail institucional:</label>
-        <input type="email" id="email" name="email" placeholder="exemplo@gmail.com" style="width: 100%; padding: 8px; box-sizing: border-box;">
+        <input type="email" id="email" name="email" placeholder="exemplo@gmail.com" style="width: 100%; padding: 8px; box-sizing: border-box;" autocomplete="email">
       </div>
 
       <button type="submit" style="width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">
@@ -45,7 +45,7 @@
 
   <div class="boas-vindas-painel" style="max-width: 400px;">
     <h1 style="color: #333; font-size: 32px; margin-bottom: 10px;">CAMAAR</h1>
-    
+
     <p style="color: #666; line-height: 1.5;">
       Se os seus dados estiverem devidamente homologados e importados do sistema institucional, você receberá uma mensagem na sua caixa de entrada para criar sua senha e ativar o seu perfil.
     </p>

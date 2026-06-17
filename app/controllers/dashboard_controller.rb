@@ -1,5 +1,6 @@
-require "json"
+# frozen_string_literal: true
 
+require "json"
 
 class DashboardController < ApplicationController
   include BrevoEmailable
@@ -9,6 +10,7 @@ class DashboardController < ApplicationController
     if current_user.nil?
       redirect_to root_path, flash: { error: "Acesso restrito. Por favor, faça login para continuar." } and return
     end
+
     @turmas_simuladas = [
       { materia: "Estruturas de Dados", semestre: "2026.1", professor: "Alessandro Silva" },
       { materia: "Bancos de Dados", semestre: "2026.1", professor: "Alessandro Silva" },
@@ -31,7 +33,7 @@ class DashboardController < ApplicationController
     discentes_pendentes = Usuario.joins(:participacoes_turma)
                                  .where(status: 0, participacoes_turma: { turma_id: turmas_do_departamento_ids })
     docentes_pendentes = Usuario.joins(:perfil_docente)
-                                .where(status: 0, perfil_docente: { departamento_id: depto_id })
+                                .where(status: 0, perfis_docentes: { departamento_id: depto_id })
     usuarios_pendentes = (discentes_pendentes + docentes_pendentes).uniq
 
     if usuarios_pendentes.empty?
@@ -55,7 +57,7 @@ class DashboardController < ApplicationController
         else
           raise "Falha de comunicação com a Brevo."
         end
-      rescue => e
+      rescue StandardError => e
         erros_envio << "#{usuario.nome} (Matrícula: #{usuario.matricula}): #{e.message}"
         raise ActiveRecord::Rollback
       end
@@ -91,7 +93,7 @@ class DashboardController < ApplicationController
         materia.departamento_id = materia_json["departamento_id_temp"]
         materia.save!
       end
-    rescue => e
+    rescue StandardError => e
       erros_importacao << "Matéria #{materia_json['nome']} (Código: #{codigo}): #{e.message}"
     end
     ActiveRecord::Base.transaction do
@@ -125,7 +127,7 @@ class DashboardController < ApplicationController
         perfil.departamento_id = docente_json["departamento_id_temp"]
         perfil.save!
       end
-    rescue => e
+    rescue StandardError => e
       erros_importacao << "Docente #{docente_json['nome']} (Matrícula: #{matricula}): #{e.message}"
     end
     dados["usuarios_discentes"]&.each do |discente_json|
@@ -154,11 +156,15 @@ class DashboardController < ApplicationController
           end
 
           turmas_aluno_ids << turma.id
-          ParticipacaoTurma.find_or_create_by!(usuario_id: usuario.id, turma_id: turma.id)
+          ParticipacaoTurma.find_or_create_by!(
+            usuario_id: usuario.id,
+            turma_id: turma.id,
+            tipo_participacao: :discente
+          )
         end
         usuario.participacoes_turma.where.not(turma_id: turmas_aluno_ids).destroy_all
       end
-    rescue => e
+    rescue StandardError => e
       erros_importacao << "Discente #{discente_json['nome']} (Matrícula: #{matricula}): #{e.message}"
     end
     ActiveRecord::Base.transaction do
@@ -166,7 +172,8 @@ class DashboardController < ApplicationController
       Materia.where.not(codigo: codigos_materias_ativos).destroy_all
       usuarios_para_remover = Usuario.where.not(matricula: matriculas_ativas_json)
       usuarios_para_remover.each do |usuario|
-        next if usuario.admin?
+        next if usuario.administrador?
+
         usuario.destroy!
       end
     end
@@ -180,7 +187,7 @@ class DashboardController < ApplicationController
   private
 
   def verificar_admin
-    if current_user.nil? || !current_user.admin?
+    if current_user.nil? || !current_user.administrador?
       session.clear
       @current_user = nil
       redirect_to root_path, flash: { error: "Acesso restrito. Por favor, faça login como administrador." }

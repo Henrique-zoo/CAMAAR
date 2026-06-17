@@ -83,10 +83,6 @@ Given(/^que existe um template chamado "([^"]+)"$/) do |titulo|
   estado[:template_atual] = template_com_titulo(titulo)
 end
 
-Given(/^que existe um template cadastrado chamado "([^"]+)"$/) do |titulo|
-  estado[:template_atual] = template_com_titulo(titulo)
-end
-
 Given(/^que existe um template chamado "([^"]+)" criado por mim$/) do |titulo|
   estado[:template_atual] = template_com_titulo(titulo, adm: adm_atual)
 end
@@ -154,83 +150,11 @@ Given(/^que existe um formulário pendente para a turma "([^"]+)"$/) do |turma_n
   estado[:formulario_atual] = formulario
 end
 
-Given(/^que existe um formulário com respostas para a turma "([^"]+)"$/) do |turma_nome|
-  turma = turma_com_identificador(turma_nome)
-  participante = usuario_participante(
-    nome: "Participante #{turma_nome}",
-    email: "#{turma_nome.parameterize}@unb.br",
-    matricula: "MAT#{Usuario.count + 1}"
-  )
-  participacao = ParticipacaoTurma.create!(
-    usuario: participante,
-    turma: turma,
-    tipo_participacao: :discente
-  )
-  formulario = formulario_para_turma(turma)
-  avaliacao = Avaliacao.create!(
-    formulario: formulario,
-    participacao_turma: participacao,
-    respondido_em: Time.current
-  )
-  questao = formulario.template.questoes.first
-  Resposta.create!(
-    avaliacao: avaliacao,
-    questao: questao,
-    texto_attributes: { texto: "Resposta de exemplo" }
-  )
-
-  estado[:formulario_atual] = formulario
-end
-
-Given(
-  /^que existe um formulário sem respostas para a turma "([^"]+)" do meu departamento$/
-) do |turma_nome|
-  turma = turma_com_identificador(
-    turma_nome,
-    departamento_nome: adm_atual.departamento.nome
-  )
-
-  estado[:formulario_atual] = formulario_para_turma(turma, adm: adm_atual)
-end
-
 Given(/^que não possuo formulários pendentes nas minhas turmas$/) do
   usuario = usuario_atual || usuario_participante
   Avaliacao.joins(:participacao_turma)
     .where(participacoes_turmas: { usuario_id: usuario.id })
     .destroy_all
-end
-
-Given(/^que já respondi o formulário da turma "([^"]+)" anteriormente$/) do |turma_nome|
-  steps %(
-    Dado que estou matriculado na turma "#{turma_nome}"
-    E que existe um formulário pendente para a turma "#{turma_nome}"
-  )
-
-  Avaliacao.last.marcar_como_respondida!
-end
-
-Given(/^que existem as turmas "([^"]+)" e "([^"]+)" cadastradas no semestre atual$/) do |primeira, segunda|
-  estado[:turmas_selecionaveis] = [
-    turma_com_identificador(primeira),
-    turma_com_identificador(segunda)
-  ]
-end
-
-Given(/^que selecionei o template "([^"]+)"$/) do |titulo|
-  estado[:template_selecionado] = template_com_titulo(titulo)
-end
-
-Given(/^selecionei a turma "([^"]+)"$/) do |turma_nome|
-  estado[:turma_selecionada] = turma_com_identificador(turma_nome)
-end
-
-Given(/^que existem formulários criados para o semestre atual$/) do
-  turma = turma_com_identificador("Cálculo 1")
-  estado[:formulario_atual] = formulario_para_turma(turma)
-end
-
-Given(/^que nenhum formulário foi gerado para o semestre vigente$/) do
-  Formulario.destroy_all
 end
 
 Then(/^devo ver a turma "([^"]+)" da matéria "([^"]+)"$/) do |numero, materia|
@@ -271,10 +195,6 @@ end
 
 Then(/^o template não deve ser criado$/) do
   expect(estado[:template_criado]).to be_nil
-end
-
-Then(/^nenhum formulário deve ser gerado$/) do
-  expect(Formulario.count).to eq(0)
 end
 
 Then(/^o formulário não deve ser criado$/) do

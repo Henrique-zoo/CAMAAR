@@ -1,6 +1,8 @@
-module Sigaa
+# frozen_string_literal: true
+
+module SIGAA
   class PasswordRequestsController < ApplicationController
-    before_action :require_admin!
+    before_action :require_administrador!
 
     def create
       result = PasswordRequestService.new.call

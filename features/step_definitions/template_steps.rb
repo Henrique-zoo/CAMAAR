@@ -241,7 +241,13 @@ Then(/^devo ver a mensagem "([^"]+)" na seção "([^"]+)"$/) do |mensagem, secao
   end
 end
 
-Then(/^devo ver uma mensagem informando que (.+)$/) do |mensagem|
+Then(/^devo ver a mensagem "Você não tem permissão para visualizar templates\."$/) do
+  expect(estado[:mensagens]).to include("Você não tem permissão para visualizar templates.")
+end
+
+Then(
+  /^devo ver uma mensagem informando que (o template .+|não tenho permissão para (?:criar|editar|deletar) templates|o título do template é obrigatório)$/
+) do |mensagem|
   mensagem = mensagem.delete_suffix(".")
 
   if mensagem.start_with?("o template") ||

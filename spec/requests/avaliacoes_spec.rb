@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe "Avaliacoes", type: :request do
@@ -60,7 +62,7 @@ RSpec.describe "Avaliacoes", type: :request do
     it "redireciona usuário não autenticado" do
       get avaliacoes_pendentes_path
 
-      expect(response).to redirect_to("/")
+      expect(response).to redirect_to(login_path)
     end
   end
 end

@@ -1,8 +1,15 @@
-class Token < ApplicationRecord
-  # Diz para o Rails buscar o usuário usando a coluna 'matricula_aluno' contra a 'matricula' do Usuário
-  belongs_to :usuario, foreign_key: :matricula_aluno, primary_key: :matricula
+# frozen_string_literal: true
 
-  # Um método helper simples para checar se o token já venceu
+class Token < ApplicationRecord
+  belongs_to :usuario,
+    class_name: "Usuario",
+    inverse_of: :tokens
+
+  validates :usuario, presence: true
+  validates :value, presence: true, uniqueness: true
+  validates :tipo, presence: true
+  validates :expires_at, presence: true
+
   def expirado?
     expires_at < Time.current
   end

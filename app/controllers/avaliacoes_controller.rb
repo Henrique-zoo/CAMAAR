@@ -1,25 +1,23 @@
+# frozen_string_literal: true
+
 class AvaliacoesController < ApplicationController
-  before_action :require_login
+  before_action :authenticate_user!
   before_action :set_avaliacao, only: %i[responder submeter]
 
   # GET /avaliacoes/pendentes
   def pendentes
-    turmas_ids = ParticipacaoTurma
-                   .where(usuario: current_usuario)
-                   .pluck(:turma_id)
-
     @avaliacoes_pendentes = Avaliacao
-                              .pendentes
-                              .joins(:participacao_turma)
-                              .where(participacoes_turmas: { turma_id: turmas_ids })
-                              .includes(formulario: { turma: :materia })
+      .pendentes
+      .joins(:participacao_turma)
+      .where(participacoes_turmas: { usuario_id: current_user.id })
+      .includes(formulario: { turma: :materia })
   end
 
   # GET /avaliacoes/:id/responder
   def responder
     if @avaliacao.respondida?
-      redirect_to pendentes_avaliacoes_path,
-                  alert: 'Esta avaliação já foi respondida.'
+      redirect_to avaliacoes_pendentes_path,
+        alert: "Esta avaliação já foi respondida."
       return
     end
 
@@ -30,8 +28,8 @@ class AvaliacoesController < ApplicationController
   # POST /avaliacoes/:id/submeter
   def submeter
     if @avaliacao.respondida?
-      redirect_to pendentes_avaliacoes_path,
-                  alert: 'Esta avaliação já foi respondida.'
+      redirect_to avaliacoes_pendentes_path,
+        alert: "Esta avaliação já foi respondida."
       return
     end
 
@@ -41,26 +39,22 @@ class AvaliacoesController < ApplicationController
     if todas_obrigatorias_preenchidas?
       salvar_respostas_e_finalizar
     else
-      flash.now[:alert] = 'Todas as questões obrigatórias devem ser preenchidas.'
+      flash.now[:alert] = "Todas as questões obrigatórias devem ser preenchidas."
       render :responder, status: :unprocessable_entity
     end
   end
 
   private
 
-  def require_login
-    redirect_to root_path, alert: 'Usuário não autenticado' unless current_usuario
-  end
-
   def set_avaliacao
     participacao_ids = ParticipacaoTurma
-                         .where(usuario: current_usuario)
+                         .where(usuario: current_user)
                          .pluck(:id)
 
     @avaliacao = Avaliacao.find_by!(id: params[:id],
                                     participacao_turma_id: participacao_ids)
   rescue ActiveRecord::RecordNotFound
-    redirect_to pendentes_avaliacoes_path, alert: 'Avaliação não encontrada.'
+    redirect_to avaliacoes_pendentes_path, alert: "Avaliação não encontrada."
   end
 
   def questoes_do_formulario
@@ -69,7 +63,7 @@ class AvaliacoesController < ApplicationController
 
     template.questoes
             .includes(:opcoes)
-            .order('utilizacoes_questoes.numero')
+            .order("utilizacoes_questoes.numero")
   end
 
   def todas_obrigatorias_preenchidas?
@@ -108,10 +102,10 @@ class AvaliacoesController < ApplicationController
       @avaliacao.marcar_como_respondida!
     end
 
-    redirect_to pendentes_avaliacoes_path,
-                notice: 'Avaliação registrada com sucesso.'
+    redirect_to avaliacoes_pendentes_path,
+      notice: "Avaliação registrada com sucesso."
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotFound => e
-    flash.now[:alert] = 'Todas as questões obrigatórias devem ser preenchidas.'
+    flash.now[:alert] = "Todas as questões obrigatórias devem ser preenchidas."
     render :responder, status: :unprocessable_entity
   end
 end

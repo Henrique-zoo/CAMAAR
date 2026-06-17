@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_15_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_16_180200) do
   create_table "avaliacoes", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "formulario_id", null: false
@@ -140,6 +140,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_15_120000) do
     t.index ["resposta_id"], name: "index_textos_on_resposta_id", unique: true
   end
 
+  create_table "tokens", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "tipo", null: false
+    t.datetime "updated_at", null: false
+    t.integer "usuario_id", null: false
+    t.string "value", null: false
+    t.index ["usuario_id", "tipo"], name: "index_tokens_on_usuario_id_and_tipo"
+    t.index ["usuario_id"], name: "index_tokens_on_usuario_id"
+    t.index ["value"], name: "index_tokens_on_value", unique: true
+  end
+
   create_table "turmas", force: :cascade do |t|
     t.integer "ano", null: false
     t.datetime "created_at", null: false
@@ -200,6 +212,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_15_120000) do
   add_foreign_key "respostas", "questoes"
   add_foreign_key "templates", "perfis_adm", column: "adm_id"
   add_foreign_key "textos", "respostas"
+  add_foreign_key "tokens", "usuarios"
   add_foreign_key "turmas", "materias"
   add_foreign_key "utilizacoes_questoes", "questoes"
   add_foreign_key "utilizacoes_questoes", "templates"

@@ -106,8 +106,7 @@ RSpec.describe "Formularios", type: :request do
       get formularios_path
 
       expect(response).to redirect_to("/")
-      follow_redirect!
-      expect(response.body).to include("Acesso não autorizado")
+      expect(flash[:alert]).to eq("Acesso não autorizado")
     end
   end
 
@@ -189,8 +188,7 @@ RSpec.describe "Formularios", type: :request do
       post formularios_path, params: { publico_alvo: "docentes" }
 
       expect(response).to redirect_to("/")
-      follow_redirect!
-      expect(response.body).to include("Acesso não autorizado")
+      expect(flash[:alert]).to eq("Acesso não autorizado")
       expect(Formulario.count).to eq(0)
     end
   end
