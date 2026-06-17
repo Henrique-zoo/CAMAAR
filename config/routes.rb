@@ -13,4 +13,13 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  resources :formularios, only: %i[index new create] do
+    collection do
+      post :preparar
+      get :publicar
+    end
+  end
+
+  get "avaliacoes/pendentes", to: "avaliacoes#index", as: :avaliacoes_pendentes
 end
