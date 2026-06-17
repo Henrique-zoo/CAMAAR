@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PerfilDiscente < ApplicationRecord
   self.primary_key = :id
 
@@ -11,8 +13,6 @@ class PerfilDiscente < ApplicationRecord
   has_many :turmas, through: :participacoes_turma
 
   validates :id, presence: true, uniqueness: true
-
-  validates :matricula, presence: true, uniqueness: true, length: { maximum: 50 }
 
   def nome
     usuario.nome

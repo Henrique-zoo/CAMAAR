@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class OpcaoEscolhida < ApplicationRecord
   belongs_to :resposta,
     class_name: "Resposta",

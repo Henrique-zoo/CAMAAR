@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_15_120000) do
   create_table "avaliacoes", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "formulario_id", null: false
@@ -92,9 +92,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
 
   create_table "perfis_discentes", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "matricula", null: false
     t.datetime "updated_at", null: false
-    t.index ["matricula"], name: "index_perfis_discentes_on_matricula", unique: true
   end
 
   create_table "perfis_docentes", force: :cascade do |t|
@@ -107,8 +105,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
   create_table "questoes", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "enunciado", null: false
+    t.integer "formulario_id"
     t.integer "tipo", null: false
     t.datetime "updated_at", null: false
+    t.index ["formulario_id"], name: "index_questoes_on_formulario_id"
   end
 
   create_table "respostas", force: :cascade do |t|
@@ -154,11 +154,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
   create_table "usuarios", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "matricula", null: false
     t.string "nome", null: false
     t.string "senha_digest"
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_usuarios_on_email", unique: true
+    t.index ["matricula"], name: "index_usuarios_on_matricula", unique: true
   end
 
   create_table "utilizacoes_questoes", force: :cascade do |t|
@@ -193,6 +195,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_221655) do
   add_foreign_key "perfis_discentes", "usuarios", column: "id"
   add_foreign_key "perfis_docentes", "departamentos"
   add_foreign_key "perfis_docentes", "usuarios", column: "id"
+  add_foreign_key "questoes", "formularios"
   add_foreign_key "respostas", "avaliacoes"
   add_foreign_key "respostas", "questoes"
   add_foreign_key "templates", "perfis_adm", column: "adm_id"

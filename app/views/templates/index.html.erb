@@ -1,0 +1,24 @@
+<h1>Templates</h1>
+
+<section id="meus-templates">
+  <h2>Meus templates</h2>
+
+  <% if @user_templates.any? %>
+    <% @user_templates.each do |t| %>
+      <p>
+        <%= link_to t.titulo, template_path(t) %>
+      </p>
+    <% end %>
+  <% else %>
+    <p>Nenhum template foi encontrado</p>
+  <% end %>
+</section>
+
+<hr>
+
+<h2>Templates de outros administradores</h2>
+<% @other_templates.each do |t| %>
+  <p>
+    <%= link_to t.titulo, template_path(t) %>
+  </p>
+<% end %>

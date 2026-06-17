@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class UtilizacaoQuestao < ApplicationRecord
   belongs_to :template,
     class_name: "Template",
@@ -22,6 +24,8 @@ class UtilizacaoQuestao < ApplicationRecord
     dependent: :destroy
 
   has_many :opcoes, through: :questao, source: :opcoes
+
+  accepts_nested_attributes_for :questao
 
   before_validation :herdar_template_do_parent
 

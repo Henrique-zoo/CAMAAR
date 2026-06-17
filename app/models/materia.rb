@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Materia < ApplicationRecord
   belongs_to :departamento,
     class_name: "Departamento",
