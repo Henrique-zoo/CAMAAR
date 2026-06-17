@@ -1,0 +1,13 @@
+<div class="sidebar">
+  <ul class="sidebar-menu">
+    <li class="<%= 'active' if current_page?(avaliacoes_path) %>">
+      <%= link_to "Avaliações", avaliacoes_path %>
+    </li>
+
+    <% if current_user&.administrador? %>
+      <li class="<%= 'active' if current_page?(gerenciamento_path) %>">
+        <%= link_to "Gerenciamento", gerenciamento_path %>
+      </li>
+    <% end %>
+  </ul>
+</div>
