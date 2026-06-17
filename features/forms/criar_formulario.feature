@@ -14,7 +14,9 @@ Funcionalidade: Criar formulário a partir de template
     Dado que estou na página de criação de formulários
     Quando eu seleciono o template "Avaliação de Desempenho Docente"
     E seleciono as turmas "Métodos de Desenvolvimento de Software - Turma A" e "Interação Humano Computador - Turma B"
-    E clico em "Criar Formulário"
+    E clico em "Continuar"
+    E seleciono a opção de público-alvo como "Docentes"
+    E confirmo a publicação do formulário
     Então o formulário deve ser gerado com sucesso para ambas as turmas
     E devo ver a mensagem "Formulário criado com sucesso para as turmas selecionadas"
 
@@ -23,6 +25,6 @@ Funcionalidade: Criar formulário a partir de template
     Dado que estou na página de criação de formulários
     Quando eu seleciono o template "Avaliação de Desempenho Docente"
     E não seleciono nenhuma turma
-    E clico em "Criar Formulário"
+    E clico em "Continuar"
     Então eu devo ver uma mensagem de erro dizendo "É necessário selecionar pelo menos uma turma"
     E nenhum formulário deve ser gerado

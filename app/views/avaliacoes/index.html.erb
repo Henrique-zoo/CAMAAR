@@ -1,0 +1,15 @@
+<h1>Formulários Pendentes</h1>
+
+<% if @pendencias.any? %>
+  <ul>
+    <% @pendencias.each do |pendencia| %>
+      <li>
+        <p><strong><%= pendencia.formulario.turma.nome_exibicao %></strong></p>
+        <p><%= pendencia.formulario.template.titulo %></p>
+        <p>Não respondido</p>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Nenhum formulário pendente foi encontrado.</p>
+<% end %>
