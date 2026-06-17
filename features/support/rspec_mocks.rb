@@ -1,4 +1,4 @@
-require "rspec/mocks"
+require 'rspec/mocks'
 
 World(RSpec::Mocks::ExampleMethods)
 
