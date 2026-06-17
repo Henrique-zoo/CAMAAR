@@ -72,3 +72,5 @@ group :test do
   gem "simplecov", require: false
   gem "database_cleaner-active_record"
 end
+
+gem "bcrypt", "~> 3.1.7"
