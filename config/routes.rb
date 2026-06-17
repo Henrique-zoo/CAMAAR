@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
+  root "templates#index"
+
+  resources :templates
+
   root "auth#index"
   get "/", to: "auth#index", as: :login
   get "/cadastro", to: "auth#solicitar_cadastro", as: :cadastro
