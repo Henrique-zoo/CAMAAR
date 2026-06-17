@@ -50,7 +50,7 @@ group :development, :test do
   gem "bundler-audit", require: false
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
-  gem "brakeman", "~> 8.0.5", require: false
+  gem "brakeman", require: false
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
@@ -74,5 +74,3 @@ group :test do
   gem "simplecov", require: false
   gem "database_cleaner-active_record"
 end
-
-gem "bcrypt", "~> 3.1.7"
