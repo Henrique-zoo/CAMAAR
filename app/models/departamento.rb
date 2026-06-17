@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Departamento < ApplicationRecord
   has_many :perfil_adms,
     class_name: "PerfilAdm",

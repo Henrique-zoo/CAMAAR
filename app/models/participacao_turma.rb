@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ParticipacaoTurma < ApplicationRecord
   enum :tipo_participacao, {
     docente: 0,

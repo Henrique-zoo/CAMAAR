@@ -21,11 +21,11 @@ Funcionalidade: Visualizar templates criados
     Dado que estou autenticado como administrador
     E que não existem templates criados por mim
     Quando eu acesso a página de templates
-    Então devo ver uma mensagem informando que nenhum template foi encontrado
+    Então devo ver a mensagem "Nenhum template foi encontrado" na seção "Meus Templates"
 
   @sad
   Cenário: Usuário não administrador tenta visualizar a página de templates
     Dado que existe um usuário não administrador cadastrado no sistema
     E que estou autenticado como usuário não administrador
     Quando eu tento acessar a página de templates
-    Então devo ver uma mensagem informando que não tenho permissão para visualizar templates
+    Então devo ver a mensagem "Você não tem permissão para visualizar templates."

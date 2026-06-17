@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Formulario < ApplicationRecord
   enum :publico_alvo, {
     docentes: 0,
@@ -17,6 +19,11 @@ class Formulario < ApplicationRecord
     class_name: "Template",
     optional: true,
     inverse_of: :formularios
+
+  has_many :questoes,
+    class_name: "Questao",
+    dependent: :destroy,
+    inverse_of: :formulario
 
   has_many :avaliacoes,
     class_name: "Avaliacao",
@@ -38,6 +45,10 @@ class Formulario < ApplicationRecord
   scope :do_departamento, ->(departamento) {
     joins(turma: :materia)
       .where(materias: { departamento_id: departamento.id })
+  }
+
+  scope :do_semestre_atual, -> {
+    joins(:turma).merge(Turma.do_semestre_atual)
   }
 
   def participacoes_alvo

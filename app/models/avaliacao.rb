@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Avaliacao < ApplicationRecord
   belongs_to :participacao_turma,
     class_name: "ParticipacaoTurma",

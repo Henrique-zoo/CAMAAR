@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PerfilDocente < ApplicationRecord
   self.primary_key = :id
 

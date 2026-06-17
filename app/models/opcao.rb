@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Opcao < ApplicationRecord
   belongs_to :questao,
     class_name: "Questao",
