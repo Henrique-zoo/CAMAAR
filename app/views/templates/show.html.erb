@@ -1,22 +1,71 @@
-<h1><%= @template.titulo %></h1>
+<main class="template-page">
+  <h1><%= @template.titulo %></h1>
 
-<p><%= @template.descricao %></p>
+  <details class="template-form__metadata" open>
+    <summary class="template-form__metadata-summary">
+      Dados do template
+    </summary>
 
-<h3>Questões</h3>
+    <div class="template-form__metadata-fields">
+      <div class="template-form__field">
+        <label>Título</label>
+        <p><%= @template.titulo %></p>
+      </div>
 
-<% @template.questoes.each do |q| %>
-  <div>
-    <p><strong><%= q.enunciado %></strong></p>
-    <p>Tipo: <%= q.tipo %></p>
+      <div class="template-form__field">
+        <label>Descrição</label>
+        <p><%= @template.descricao %></p>
+      </div>
+    </div>
+  </details>
 
-    <% if q.opcoes.any? %>
-      <ul>
-        <% q.opcoes.each do |o| %>
-          <li><%= o.numero %> - <%= o.texto %></li>
-        <% end %>
-      </ul>
+  <hr>
+
+  <h3>Questões</h3>
+
+  <div class="template-form__questions">
+    <% @template.questoes_ordenadas.each do |utilizacao| %>
+      <div class="template-question">
+        <div class="template-question__content">
+          <div class="template-question__header">
+            Questão <span><%= utilizacao.numero %></span>
+          </div>
+
+          <div class="template-form__field template-form__field--compact">
+            <label>Tipo</label>
+            <p><strong><%= utilizacao.questao.discursiva? ? "Discursiva" : "Objetiva" %></strong></p>
+          </div>
+
+          <div class="template-form__field">
+            <label>Enunciado</label>
+            <p><%= simple_format(utilizacao.questao.enunciado) %></p>
+          </div>
+
+          <% if utilizacao.questao.objetiva? && utilizacao.questao.opcoes.any? %>
+            <fieldset class="template-options">
+              <legend>Opções</legend>
+
+              <div class="template-options__list">
+                <% utilizacao.questao.opcoes.ordenadas.each do |opcao| %>
+                  <div class="template-option">
+                    <div class="template-option__content">
+                      <span class="template-option__label">
+                        Opção <span><%= opcao.numero %></span>
+                      </span>
+                      <p><%= opcao.texto %></p>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </fieldset>
+          <% end %>
+        </div>
+      </div>
     <% end %>
   </div>
-<% end %>
 
-<%= link_to "Voltar", templates_path %>
+  <div class="template-form__actions">
+    <%= button_tag "Editar", onclick: "window.location.href='#{edit_template_path(@template)}'", class: "template-form__submit", type: :button %>
+    <%= button_tag "Voltar", onclick: "window.history.back();", class: "template-form__submit", type: :button %>
+  </div>
+</main>
