@@ -21,7 +21,7 @@ Dado('que existe um formulário com respostas para a turma {string}') do |nome_t
   template = Template.create!(
     adm: administrador_csv.perfil_adm,
     titulo: "Template Padrão",
-    utilizacao_questoes_attributes: [
+    utilizacoes_questoes_attributes: [
       { questao_id: @questao.id, numero: 1 }
     ]
   )
@@ -83,7 +83,7 @@ Dado('que existe um formulário sem respostas para a turma {string} do meu depar
   template = Template.create!(
     adm: administrador_csv.perfil_adm,
     titulo: "Template Vazio",
-    utilizacao_questoes_attributes: [
+    utilizacoes_questoes_attributes: [
       { questao_id: @questao.id, numero: 1 }
     ]
   )
@@ -127,7 +127,7 @@ Quando('eu tento acessar a rota de exportação de resultados em CSV') do
   template = Template.create!(
     adm: perf,
     titulo: "Template Sad",
-    utilizacao_questoes_attributes: [
+    utilizacoes_questoes_attributes: [
       { questao_id: questao.id, numero: 1 }
     ]
   )

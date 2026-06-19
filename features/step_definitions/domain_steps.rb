@@ -94,9 +94,9 @@ Given(
   next if template.questoes.exists?(enunciado: enunciado)
 
   questao = Questao.create!(enunciado: enunciado, tipo: :discursiva)
-  template.utilizacao_questoes.create!(
+  template.utilizacoes_questoes.create!(
     questao: questao,
-    numero: template.utilizacao_questoes.count + 1
+    numero: template.utilizacoes_questoes.count + 1
   )
 end
 

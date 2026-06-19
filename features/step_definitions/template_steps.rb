@@ -13,7 +13,7 @@ def template_params_do_formulario
     template: {
       titulo: estado[:template_form][:titulo],
       descricao: estado[:template_form][:descricao],
-      utilizacao_questoes_attributes: estado[:template_form][:questoes]
+      utilizacoes_questoes_attributes: estado[:template_form][:questoes]
         .each_with_index
         .map do |questao, index|
           {
@@ -32,7 +32,7 @@ end
 def mensagem_de_erro_do_template(template)
   return "o título do template é obrigatório" if template.errors[:titulo].any?
 
-  if template.errors[:utilizacao_questoes].any?
+  if template.errors[:utilizacoes_questoes].any?
     return "o template deve possuir pelo menos uma questão"
   end
 
