@@ -80,6 +80,49 @@ RSpec.describe "Templates", type: :request do
 
       expect(response).to have_http_status(:ok)
     end
+
+    it "prepara uma questão discursiva inicial sem opções" do
+      new_template = Template.new(adm_id: 1)
+
+      allow(new_template).to receive(:questoes).and_return([])
+      allow(Template)
+        .to receive(:new)
+        .with(adm: current_administrador)
+        .and_return(new_template)
+
+      get new_template_path
+
+      questao = new_template.utilizacoes_questoes.first.questao
+      expect(questao).to be_discursiva
+      expect(questao.opcoes).to be_empty
+    end
+
+    it "não renderiza campos de exclusão persistida na criação" do
+      new_template = Template.new(adm_id: 1)
+
+      allow(new_template).to receive(:questoes).and_return([])
+      allow(Template)
+        .to receive(:new)
+        .with(adm: current_administrador)
+        .and_return(new_template)
+
+      get new_template_path
+
+      expect(response.body).to include("template-form#destroyQuestion")
+      expect(response.body).to include("template-form#destroyOption")
+      expect(response.body).not_to include(
+        "template[utilizacoes_questoes_attributes][0][id]"
+      )
+      expect(response.body).not_to include(
+        "template[utilizacoes_questoes_attributes][0][_destroy]"
+      )
+      expect(response.body).not_to include(
+        "template[utilizacoes_questoes_attributes][NEW_QUESTION][id]"
+      )
+      expect(response.body).not_to include(
+        "template[utilizacoes_questoes_attributes][NEW_QUESTION][_destroy]"
+      )
+    end
   end
 
   describe "GET /templates/:id" do
@@ -118,6 +161,53 @@ RSpec.describe "Templates", type: :request do
       expect(new_template).to have_received(:save)
       expect(response).to redirect_to(template_path(new_template))
     end
+
+    it "persiste questões adicionadas no frontend no submit final" do
+      administrador = create_admin_usuario.perfil_adm
+
+      allow_any_instance_of(ApplicationController)
+        .to receive(:current_administrador)
+        .and_return(administrador)
+
+      expect do
+        post templates_path, params: {
+          template: {
+            titulo: "Avaliação com campos dinâmicos",
+            descricao: "Descrição",
+            utilizacoes_questoes_attributes: {
+              "0" => {
+                numero: "1",
+                questao_attributes: {
+                  enunciado: "Descreva os pontos positivos",
+                  tipo: "discursiva"
+                }
+              },
+              "1" => {
+                numero: "2",
+                questao_attributes: {
+                  enunciado: "Como você avalia a disciplina?",
+                  tipo: "objetiva",
+                  opcoes_attributes: {
+                    "0" => {
+                      numero: "1",
+                      texto: "Boa"
+                    },
+                    "1" => {
+                      numero: "2",
+                      texto: "Excelente"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      end.to change(Template, :count).by(1)
+        .and change(UtilizacaoQuestao, :count).by(2)
+        .and change(Opcao, :count).by(2)
+
+      expect(response).to redirect_to(template_path(Template.last))
+    end
   end
 
   describe "GET /templates/:id/edit" do
@@ -127,6 +217,70 @@ RSpec.describe "Templates", type: :request do
       get edit_template_path(template)
 
       expect(response).to have_http_status(:ok)
+    end
+
+    it "renderiza botões para remover questões e opções via update do template" do
+      template_com_questao_objetiva = create_template_with_questoes(
+        titulo: "Avaliação objetiva",
+        questoes: [
+          {
+            enunciado: "Como você avalia a disciplina?",
+            tipo: :objetiva,
+            opcoes: %w[Ruim Regular Bom]
+          }
+        ]
+      )
+
+      allow(Template)
+        .to receive(:find)
+        .with(template_com_questao_objetiva.id.to_s)
+        .and_return(template_com_questao_objetiva)
+
+      get edit_template_path(template_com_questao_objetiva)
+
+      expect(response.body).to include("/assets/icons/trash-")
+      expect(response.body).to include(
+        "template[utilizacoes_questoes_attributes][0][id]"
+      )
+      expect(response.body).to include(
+        "template[utilizacoes_questoes_attributes][0][_destroy]"
+      )
+      expect(response.body).to include(
+        "template[utilizacoes_questoes_attributes][0]" \
+          "[questao_attributes][opcoes_attributes][0][id]"
+      )
+      expect(response.body).to include(
+        "template[utilizacoes_questoes_attributes][0]" \
+          "[questao_attributes][opcoes_attributes][0][_destroy]"
+      )
+      expect(response.body).to include("template-form#destroyQuestion")
+      expect(response.body).to include("template-form#destroyOption")
+      expect(response.body).not_to include("checkbox")
+      expect(response.body).not_to include("<span>Remover")
+    end
+
+    it "renderiza botões frontend para adicionar questão e opção" do
+      allow(Template).to receive(:find).with("1").and_return(template)
+
+      get edit_template_path(template)
+
+      expect(response.body).to include("data-controller=\"template-form\"")
+      expect(response.body).to include("template-form#addQuestion")
+      expect(response.body).to include("template-form#addOption")
+      expect(response.body).to include("template-form#moveQuestionUp")
+      expect(response.body).to include("template-form#moveQuestionDown")
+      expect(response.body).to include("template-form#moveOptionUp")
+      expect(response.body).to include("template-form#moveOptionDown")
+      expect(response.body).to include("data-template-form-question-number")
+      expect(response.body).to include("data-template-form-option-number")
+      expect(response.body).not_to include("type=\"number\"")
+      expect(response.body).not_to include("name=\"adicionar_questao\"")
+      expect(response.body).not_to include("name=\"adicionar_opcao\"")
+      expect(response.body).to include("/assets/icons/plus-")
+      expect(response.body).to include("/assets/icons/arrow-up-")
+      expect(response.body).to include("/assets/icons/arrow-down-")
+      expect(response.body).not_to include("<span>Adicionar")
+      expect(response.body).not_to include("<span>Mover")
     end
   end
 
@@ -142,6 +296,59 @@ RSpec.describe "Templates", type: :request do
       expect(template).to have_received(:update)
         .with(ActionController::Parameters.new(titulo: "Novo título").permit!)
       expect(response).to redirect_to(template_path(template))
+    end
+
+    it "persiste opções adicionadas no frontend no submit final" do
+      template_com_questao_objetiva = create_template_with_questoes(
+        titulo: "Avaliação objetiva",
+        questoes: [
+          {
+            enunciado: "Como você avalia a disciplina?",
+            tipo: :objetiva,
+            opcoes: %w[Ruim Regular Bom]
+          }
+        ]
+      )
+      utilizacao = template_com_questao_objetiva.utilizacoes_questoes.first
+      questao = utilizacao.questao
+
+      expect do
+        patch template_path(template_com_questao_objetiva), params: {
+          template: {
+            titulo: template_com_questao_objetiva.titulo,
+            descricao: template_com_questao_objetiva.descricao,
+            utilizacoes_questoes_attributes: {
+              "0" => {
+                id: utilizacao.id,
+                numero: utilizacao.numero,
+                questao_attributes: {
+                  id: questao.id,
+                  enunciado: questao.enunciado,
+                  tipo: "objetiva",
+                  opcoes_attributes: questao.opcoes.each_with_index.to_h do |opcao, index|
+                    [
+                      index.to_s,
+                      {
+                        id: opcao.id,
+                        numero: opcao.numero,
+                        texto: opcao.texto
+                      }
+                    ]
+                  end.merge(
+                    "3" => {
+                      numero: "4",
+                      texto: "Excelente"
+                    }
+                  )
+                }
+              }
+            }
+          }
+        }
+      end.to change(Opcao, :count).by(1)
+
+      expect(response).to redirect_to(template_path(template_com_questao_objetiva))
+      expect(questao.opcoes.reload.pluck(:texto)).to include("Excelente")
     end
   end
 
