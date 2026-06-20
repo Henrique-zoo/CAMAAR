@@ -1,0 +1,100 @@
+<% utilizacao_persistida = edicao && utilizacao_form.object.persisted? %>
+
+<div class="template-question" data-controller="template-question" data-template-form-question data-template-form-question-index="<%= utilizacao_form.index %>">
+  <% if utilizacao_persistida %>
+    <%= utilizacao_form.hidden_field :id, data: { template_form_utilizacao_id: true } %>
+    <%= utilizacao_form.hidden_field :_destroy, value: "0", data: { template_form_question_destroy: true } %>
+  <% end %>
+
+  <%= utilizacao_form.hidden_field :parent_id %>
+  <%= utilizacao_form.hidden_field :numero, data: { template_form_question_number: true } %>
+
+  <div class="template-question__content">
+    <div class="template-question__header">
+      Questão <span data-template-form-question-position></span>
+    </div>
+
+    <%= utilizacao_form.fields_for :questao do |questao_form| %>
+      <% questao_persistida = edicao && questao_form.object.persisted? %>
+
+      <% if questao_persistida %>
+        <%= questao_form.hidden_field :id, data: { template_form_questao_id: true } %>
+      <% end %>
+
+      <div class="template-form__field template-form__field--compact">
+        <%= questao_form.label :tipo %>
+        <%= questao_form.select(
+              :tipo,
+              [["Discursiva", "discursiva"], ["Objetiva", "objetiva"]],
+              {},
+              data: {
+                action: "template-question#toggleOptions",
+                template_question_target: "tipo"
+              }
+            ) %>
+      </div>
+
+      <div class="template-form__field">
+        <%= questao_form.label :enunciado %>
+        <%= questao_form.text_area :enunciado, rows: 3 %>
+      </div>
+
+      <% opcoes_visiveis = questao_form.object.objetiva? || questao_form.object.opcoes.any? %>
+      <div data-template-question-target="opcoes" <%= "hidden" unless opcoes_visiveis %>>
+        <fieldset class="template-options">
+          <legend>Opções</legend>
+
+          <div class="template-options__list" data-template-form-options>
+            <% opcoes_ordenadas = questao_form.object.opcoes.sort_by { |opcao| [opcao.numero || 0, opcao.id || 0] } %>
+
+            <%= questao_form.fields_for :opcoes, opcoes_ordenadas do |opcao_form| %>
+              <%= render "option_fields", opcao_form: opcao_form, edicao: edicao %>
+            <% end %>
+          </div>
+        </fieldset>
+
+        <%= button_tag(
+              type: "button",
+              class: "template-form__icon-button template-form__add-button",
+              data: { action: "template-form#addOption" },
+              title: "Adicionar opção",
+              aria: { label: "Adicionar opção" }
+            ) do %>
+          <%= image_tag "icons/plus.svg", alt: "", width: 16, height: 16 %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="template-question__actions">
+    <%= button_tag(
+          type: "button",
+          class: "template-form__icon-button",
+          data: { action: "template-form#moveQuestionUp" },
+          title: "Mover questão para cima",
+          aria: { label: "Mover questão para cima" }
+        ) do %>
+      <%= image_tag "icons/arrow-up.svg", alt: "", width: 16, height: 16 %>
+    <% end %>
+
+    <%= button_tag(
+          type: "button",
+          class: "template-form__icon-button",
+          data: { action: "template-form#moveQuestionDown" },
+          title: "Mover questão para baixo",
+          aria: { label: "Mover questão para baixo" }
+        ) do %>
+      <%= image_tag "icons/arrow-down.svg", alt: "", width: 16, height: 16 %>
+    <% end %>
+
+    <%= button_tag(
+          type: "button",
+          class: "template-form__icon-button template-form__icon-button--danger",
+          data: { action: "template-form#destroyQuestion" },
+          title: "Remover questão",
+          aria: { label: "Remover questão" }
+        ) do %>
+      <%= image_tag "icons/trash.svg", alt: "", width: 16, height: 16 %>
+    <% end %>
+  </div>
+</div>

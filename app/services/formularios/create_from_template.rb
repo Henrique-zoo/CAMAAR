@@ -61,7 +61,7 @@ module Formularios
     end
 
     def validate_template!
-      raise Error, SEM_QUESTOES if template.utilizacao_questoes.raizes.none?
+      raise Error, SEM_QUESTOES if template.utilizacoes_questoes.raizes.none?
     end
 
     def validate_turmas!
@@ -86,7 +86,7 @@ module Formularios
     end
 
     def copy_questoes_from_template!(formulario)
-      template.utilizacao_questoes.raizes.ordenadas.each do |utilizacao|
+      template.utilizacoes_questoes.raizes.ordenadas.each do |utilizacao|
         questao_origem = utilizacao.questao
 
         questao = formulario.questoes.build(
