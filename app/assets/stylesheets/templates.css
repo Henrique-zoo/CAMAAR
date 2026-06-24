@@ -157,6 +157,11 @@
     box-shadow 0.2s ease;
 }
 
+.template-question[hidden],
+.template-option[hidden] {
+  display: none;
+}
+
 .template-question:focus-within {
   border-color: rgba(16, 185, 129, 0.58);
   border-left-color: var(--camaar-accent);
@@ -333,7 +338,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px;
+  padding: 0px 15px;
 }
 
 .template-option__content {
