@@ -1,16 +1,10 @@
 module TemplatesHelper
   def letra_da_opcao(numero)
-    return "" if numero.blank?
-
     numero = numero.to_i
-    resultado = ""
+    return "" unless numero.positive?
 
-    while numero.positive?
-      numero -= 1
-      resultado.prepend((97 + (numero % 26)).chr)
-      numero /= 26
-    end
+    quotient, remainder = (numero - 1).divmod(26)
 
-    resultado
+    "#{letra_da_opcao(quotient)}#{(97 + remainder).chr}"
   end
 end

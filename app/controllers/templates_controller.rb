@@ -27,8 +27,7 @@ class TemplatesController < ApplicationController
   end
 
   def create
-    @template = Template.new(template_params)
-    @template.adm = current_administrador
+    @template = build_template
 
     authorize! @template
 
@@ -75,6 +74,12 @@ class TemplatesController < ApplicationController
     @template = Template.find(params[:id])
   end
 
+  def build_template
+    Template.new(template_params).tap do |template|
+      template.adm = current_administrador
+    end
+  end
+
   def preparar_campos_do_template
     utilizacoes = @template.utilizacoes_questoes
     utilizacoes.build(numero: 1) if utilizacoes.empty?
@@ -85,75 +90,21 @@ class TemplatesController < ApplicationController
   end
 
   def atualizar_template_com_reordenacao
-    template_atualizado = false
-
     Template.transaction do
       preparar_reordenacao_de_registros_persistidos
-      template_atualizado = @template.update(template_params)
-
-      raise ActiveRecord::Rollback unless template_atualizado
+      update_template_or_rollback
     end
-
-    template_atualizado
   end
 
   def preparar_reordenacao_de_registros_persistidos
-    utilizacoes_attributes = nested_attributes_values(
-      params.dig(:template, :utilizacoes_questoes_attributes)
+    Templates::PersistedReordering.prepare(
+      template: @template,
+      attributes: params.dig(:template, :utilizacoes_questoes_attributes)
     )
-
-    preparar_reordenacao_de_utilizacoes(utilizacoes_attributes)
-    preparar_reordenacao_de_opcoes(utilizacoes_attributes)
   end
 
-  def preparar_reordenacao_de_utilizacoes(utilizacoes_attributes)
-    ids = utilizacoes_attributes
-      .reject { |attributes| destroy_attribute?(attributes) }
-      .filter_map { |attributes| persisted_id_with_number(attributes) }
-
-    UtilizacaoQuestao
-      .where(template_id: @template.id, id: ids)
-      .find_each
-      .with_index(1) do |utilizacao, index|
-        utilizacao.update_columns(numero: -index)
-      end
-  end
-
-  def preparar_reordenacao_de_opcoes(utilizacoes_attributes)
-    opcao_ids = utilizacoes_attributes.flat_map do |utilizacao_attributes|
-      questao_attributes = utilizacao_attributes[:questao_attributes] ||
-        utilizacao_attributes["questao_attributes"]
-      opcoes_attributes = nested_attributes_values(
-        questao_attributes&.dig(:opcoes_attributes) ||
-          questao_attributes&.dig("opcoes_attributes")
-      )
-
-      opcoes_attributes
-        .reject { |attributes| destroy_attribute?(attributes) }
-        .filter_map { |attributes| persisted_id_with_number(attributes) }
-    end
-
-    Opcao.where(id: opcao_ids).find_each.with_index(1) do |opcao, index|
-      opcao.update_columns(numero: -index)
-    end
-  end
-
-  def nested_attributes_values(attributes)
-    return [] if attributes.blank?
-    return attributes.values if attributes.respond_to?(:values)
-
-    Array(attributes)
-  end
-
-  def destroy_attribute?(attributes)
-    ActiveModel::Type::Boolean.new.cast(attributes[:_destroy] || attributes["_destroy"])
-  end
-
-  def persisted_id_with_number(attributes)
-    id = attributes[:id] || attributes["id"]
-    numero = attributes[:numero] || attributes["numero"]
-
-    id if id.present? && numero.present?
+  def update_template_or_rollback
+    @template.update(template_params) || raise(ActiveRecord::Rollback)
   end
 
   def template_params

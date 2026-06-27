@@ -70,17 +70,32 @@ class Template < ApplicationRecord
   end
 
   def utilizacao_questao_em_branco?(attributes)
-    return false if attributes["id"].present?
-    return false if attributes["questao_id"].present?
+    return false if persisted_or_referenced_questao?(attributes)
 
-    questao_attributes = attributes["questao_attributes"] || {}
-    return false if questao_attributes["enunciado"].present?
+    questao_attributes_em_branco?(attributes["questao_attributes"] || {})
+  end
 
-    opcoes_attributes = questao_attributes["opcoes_attributes"] || {}
-    opcoes = opcoes_attributes.respond_to?(:values) ? opcoes_attributes.values : opcoes_attributes
+  def persisted_or_referenced_questao?(attributes)
+    attributes.values_at("id", "questao_id").any?(&:present?)
+  end
 
-    opcoes.none? do |opcao_attributes|
+
+  def questao_attributes_em_branco?(attributes)
+    attributes["enunciado"].blank? &&
+      opcoes_attributes_em_branco?(attributes["opcoes_attributes"])
+  end
+
+
+  def opcoes_attributes_em_branco?(attributes)
+    nested_attributes_values(attributes).none? do |opcao_attributes|
       opcao_attributes["texto"].present?
     end
+  end
+
+  def nested_attributes_values(attributes)
+    return [] if attributes.blank?
+    return attributes.values if attributes.is_a?(Hash)
+
+    Array(attributes)
   end
 end
