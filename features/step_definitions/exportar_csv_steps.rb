@@ -1,9 +1,31 @@
 # frozen_string_literal: true
 
+# == Descrição
+# Método auxiliar para os testes que recupera ou define o usuário administrador no contexto atual da sessão ou estado do teste.
+#
+# == Argumentos
+# * Nenhum.
+#
+# == Retorno
+# * Retorna uma instância de +Usuario+ que possui privilégios de administrador.
+#
+# == Efeitos Colaterais
+# * Nenhum. Apenas leitura de variáveis locais e de estado.
 def administrador_csv
   usuario_atual || estado[:usuario_administrador] || usuario_administrador
 end
 
+# == Descrição
+# Método auxiliar para os testes que recupera o departamento vinculado ao administrador logado no cenário.
+#
+# == Argumentos
+# * Nenhum.
+#
+# == Retorno
+# * Retorna a instância de +Departamento+ associada ao perfil do administrador.
+#
+# == Efeitos Colaterais
+# * Nenhum. Executa apenas a navegação pelas associações do objeto em memória.
 def departamento_csv
   administrador_csv.perfil_adm.departamento
 end
@@ -12,6 +34,9 @@ end
 # Cenário 1: Formulário com Respostas (@happy)
 # -------------------------------------------------------
 
+# == Descrição
+# Prepara o banco de dados com toda a hierarquia necessária (matéria, turma, template e formulário) 
+# e simula um aluno que já respondeu a este formulário com uma questão discursiva.
 Dado('que existe um formulário com respostas para a turma {string}') do |nome_turma|
   materia = Materia.find_or_create_by!(nome: nome_turma, departamento: departamento_csv) { |m| m.codigo = "COD#{rand(1000)}" }
   @turma = Turma.find_or_create_by!(materia: materia, ano: 2026, semestre: :primeiro) { |t| t.numero = 1 }
@@ -52,18 +77,26 @@ Dado('que existe um formulário com respostas para a turma {string}') do |nome_t
   resposta.save!(validate: false)
 end
 
+# == Descrição
+# Simula a navegação inicial do administrador para o painel de relatórios do departamento.
 Quando('eu acesso a página de relatórios do meu departamento') do
 end
 
+# == Descrição
+# Aciona a rota que faz o download do CSV para o formulário previamente criado.
 Quando('solicito a exportação do formulário da turma {string}') do |_nome_turma|
   visit exportar_csv_formulario_path(@formulario)
 end
 
+# == Descrição
+# Inspeciona os cabeçalhos da resposta HTTP para garantir que o navegador recebeu a instrução de baixar um anexo do tipo CSV.
 Então('o download do arquivo CSV deve ser iniciado') do
   expect(page.response_headers["Content-Type"]).to include "text/csv"
   expect(page.response_headers["Content-Disposition"]).to include "attachment"
 end
 
+# == Descrição
+# Faz a leitura do corpo do arquivo baixado e verifica se o nome do aluno, a pergunta e a resposta constam no texto.
 Então('o CSV deve conter os dados esperados das avaliações') do
   expect(page.body).to include("João Respondedor")
   expect(page.body).to include("Avalie o professor")
@@ -74,6 +107,8 @@ end
 # Cenário 2: Formulário sem Respostas (@happy)
 # -------------------------------------------------------
 
+# == Descrição
+# Configura o banco de dados com um formulário ativo, porém sem simular nenhuma submissão de respostas por alunos.
 Dado('que existe um formulário sem respostas para a turma {string} do meu departamento') do |nome_turma|
   materia = Materia.find_or_create_by!(nome: nome_turma, departamento: departamento_csv) { |m| m.codigo = "COD#{rand(1000)}" }
   @turma = Turma.find_or_create_by!(materia: materia, ano: 2026, semestre: :primeiro) { |t| t.numero = 1 }
@@ -96,10 +131,14 @@ Dado('que existe um formulário sem respostas para a turma {string} do meu depar
   )
 end
 
+# == Descrição
+# Acessa o endpoint de geração de relatório para o formulário vazio configurado no cenário.
 Quando('eu solicito a exportação do formulário da turma {string}') do |_nome_turma|
   visit exportar_csv_formulario_path(@formulario_vazio)
 end
 
+# == Descrição
+# Garante que o arquivo gerado contenha estritamente uma única linha correspondente ao cabeçalho das colunas.
 Então('o arquivo CSV deve conter apenas a linha de cabeçalho') do
   linhas = page.body.split("\n")
   expect(linhas.size).to eq(1)
@@ -110,6 +149,8 @@ end
 # Cenário 3: Tentativa de Acesso por Não-Administrador (@sad)
 # -------------------------------------------------------
 
+# == Descrição
+# Cria o contexto de um formulário válido e simula a requisição direta na rota de exportação por um usuário sem privilégios.
 Quando('eu tento acessar a rota de exportação de resultados em CSV') do
   depto = Departamento.find_or_create_by!(nome: "Departamento Teste")
   materia = Materia.find_or_create_by!(nome: "Matéria", departamento: depto) { |m| m.codigo = "MAT001" }
@@ -137,6 +178,8 @@ Quando('eu tento acessar a rota de exportação de resultados em CSV') do
   visit exportar_csv_formulario_path(form)
 end
 
+# == Descrição
+# Confirma se o Controller barrou o acesso e exibiu o alerta correto na tela, cumprindo as exigências de segurança.
 Então('devo ver uma mensagem informando que apenas administradores possuem acesso a este recurso') do
   expect(page).to have_content("Apenas administradores possuem acesso a este recurso")
 end

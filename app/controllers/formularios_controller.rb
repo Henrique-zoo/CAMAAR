@@ -218,6 +218,18 @@ class FormulariosController < ApplicationController
     authorize! Formulario
   end
 
+  # == Descrição
+  # Método utilitário privado que traduz uma instância de avaliação e suas respectivas respostas em uma linha compatível com o CSV.
+  #
+  # == Argumentos
+  # * +avaliacao+: Instância do modelo +Avaliacao+.
+  # * +questoes+: Coleção ou array contendo os objetos ordenados de +Questao+.
+  #
+  # == Retorno
+  # * Retorna um objeto +Array+ cujas primeiras posições são os dados de identificação do aluno seguidos por suas respostas textuais.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum. Processamento puro em memória ram.
   def linha_csv(avaliacao, questoes)
     usuario = avaliacao.participacao_turma.usuario
     linha = [ usuario.nome, usuario.matricula.presence || "N/A" ]
@@ -230,6 +242,20 @@ class FormulariosController < ApplicationController
     linha
   end
 
+  # == Descrição
+  # Método utilitário privado que analisa a estrutura interna de uma resposta e extrai seu conteúdo bruto de acordo com o tipo da questão.
+  #
+  # == Argumentos
+  # * +resposta+: Objeto do modelo +Resposta+ (pode receber o valor +nil+ se o aluno deixou em branco).
+  # * +questao+: Objeto do modelo +Questao+.
+  #
+  # == Retorno
+  # * Retorna a String "Sem resposta" se a instância for nula.
+  # * Retorna uma string contendo o texto limpo caso a questão seja discursiva.
+  # * Retorna o texto da opção ou opções selecionadas (unidas por vírgula se for múltipla escolha) caso a questão seja objetiva.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def valor_resposta_csv(resposta, questao)
     return "Sem resposta" if resposta.nil?
     return resposta.texto&.texto.to_s.strip if questao.discursiva?
