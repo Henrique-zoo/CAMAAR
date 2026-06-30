@@ -4,12 +4,25 @@ module Formularios
   # A classe valida o template, as turmas e o público-alvo antes de criar os
   # formulários, copiar as questões como snapshot e gerar avaliações pendentes.
   class CreateFromTemplate
+    # Mensagem quando a lista de turmas está vazia.
     SEM_TURMAS = "É necessário selecionar pelo menos uma turma"
+
+    # Mensagem quando nenhum template foi informado.
     SEM_TEMPLATE = "Selecione um template"
+
+    # Mensagem quando o template não possui questões.
     SEM_QUESTOES = "O template deve possuir pelo menos uma questão"
+
+    # Mensagem quando algum id de turma não existe no banco.
     TURMAS_INVALIDAS = "Uma ou mais turmas selecionadas são inválidas"
+
+    # Mensagem quando turma, template e público-alvo já possuem formulário.
     TURMA_COM_FORMULARIO = "Uma ou mais turmas selecionadas já possuem formulário para este template e público-alvo"
+
+    # Mensagem quando alguma turma pertence a outro departamento do administrador.
     TURMA_DEPARTAMENTO_INCOMPATIVEL = "Uma ou mais turmas selecionadas pertencem a outro departamento"
+
+    # Mensagem quando o público-alvo não foi selecionado.
     SEM_PUBLICO_ALVO = "Por favor, selecione o público-alvo do formulário"
 
     # Executa a criação de formulários a partir de um template.

@@ -2,11 +2,27 @@
 
 require "csv"
 
+# Controller REST para listagem, criação em lote, visualização de relatório e
+# exportação CSV de formulários.
+#
+# A autorização é feita via +FormularioPolicy+. A criação em lote delega a
+# +Formularios::CreateFromTemplate+.
 class FormulariosController < ApplicationController
   before_action :authenticate_user!
   before_action :authorize_formulario!, only: %i[show exportar_csv]
   before_action :set_formulario, only: %i[show exportar_csv]
 
+  # Lista formulários do departamento e semestre atual do administrador logado.
+  #
+  # Argumentos:
+  # - Nenhum parâmetro de request além da sessão autenticada.
+  #
+  # Retorno:
+  # - Renderiza a view +index+ com +@user_formularios+ e +@other_formularios+.
+  #
+  # Efeitos colaterais:
+  # - Consulta formulários filtrados por departamento, semestre e ordenação
+  #   recente, separando os criados pelo usuário dos criados por outros.
   def index
     authorize! Formulario
 
@@ -20,10 +36,31 @@ class FormulariosController < ApplicationController
     @other_formularios = formularios.criados_por_outros(current_administrador)
   end
 
+  # Exibe o relatório de um formulário.
+  #
+  # Argumentos:
+  # - +params[:id]+: id do formulário carregado em +@formulario+.
+  #
+  # Retorno:
+  # - Renderiza a view +show+.
+  #
+  # Efeitos colaterais:
+  # - Consulta o formulário via +set_formulario+ antes da action.
   def show
     authorize! @formulario
   end
 
+  # Exibe o formulário de publicação de um template para turmas selecionadas.
+  #
+  # Argumentos:
+  # - +params[:template_id]+ e +params[:materia_id]+ (opcionais): pré-seleção
+  #   de template e matéria na interface.
+  #
+  # Retorno:
+  # - Renderiza a view +new+ com templates, matérias e turmas do departamento.
+  #
+  # Efeitos colaterais:
+  # - Consulta templates, matérias, turmas e professores disponíveis.
   def new
     @formulario = Formulario.new(adm: current_administrador)
     authorize! @formulario
@@ -31,6 +68,22 @@ class FormulariosController < ApplicationController
     carregar_opcoes_de_selecao
   end
 
+  # Publica formulários em lote a partir de um template e lista de turmas.
+  #
+  # Argumentos:
+  # - +params[:template_id]+: template de origem.
+  # - +params[:turma_ids]+: turmas que receberão o formulário.
+  # - +params[:publico_alvo]+: público que deve responder (+docentes+ ou
+  #   +discentes+).
+  #
+  # Retorno:
+  # - Redireciona para +formularios_path+ com aviso de sucesso.
+  # - Em falha, renderiza +new+ com status 422 e mensagem em +flash[:alert]+.
+  #
+  # Efeitos colaterais:
+  # - Cria formulários, questões e avaliações via +Formularios::CreateFromTemplate+.
+  # - Trata +Formularios::Error+, +ActiveRecord::RecordInvalid+ e
+  #   +ActiveRecord::RecordNotFound+.
   def create
     authorize! Formulario.new(adm: current_administrador)
 
@@ -40,6 +93,17 @@ class FormulariosController < ApplicationController
     renderizar_erro_criacao_formulario(e)
   end
 
+  # Exporta respostas do formulário em CSV com separador +;+.
+  #
+  # Argumentos:
+  # - +params[:id]+: id do formulário carregado em +@formulario+.
+  #
+  # Retorno:
+  # - Envia arquivo CSV via +send_data+ com colunas de aluno, matrícula e
+  #   resposta por questão.
+  #
+  # Efeitos colaterais:
+  # - Consulta avaliações com respostas e gera o conteúdo do arquivo em memória.
   def exportar_csv
     authorize! @formulario
 
