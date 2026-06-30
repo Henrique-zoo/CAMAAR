@@ -5,6 +5,7 @@ require "json"
 class DashboardController < ApplicationController
   include BrevoEmailable
   before_action :verificar_admin, only: [ :gerenciamento, :importar_dados, :enviar_solicitacoes ]
+  before_action :verificar_usuario_logado, only: %i[pesquisar sugestoes]
 
   def index
     if current_user.nil?
@@ -21,6 +22,14 @@ class DashboardController < ApplicationController
   end
 
   def gerenciamento
+  end
+
+  def pesquisar
+    redirect_to avaliacoes_path
+  end
+
+  def sugestoes
+    render json: []
   end
 
   def enviar_solicitacoes
@@ -185,6 +194,12 @@ class DashboardController < ApplicationController
   end
 
   private
+
+  def verificar_usuario_logado
+    return if current_user.present?
+
+    redirect_to root_path, alert: "Acesso restrito. Por favor, faça login para continuar."
+  end
 
   def verificar_admin
     if current_user.nil? || !current_user.administrador?
