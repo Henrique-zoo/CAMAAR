@@ -164,7 +164,7 @@ module Formularios
         turma: turma,
         publico_alvo: publico_alvo
       ).tap do |formulario|
-        Formularios::TemplateQuestionSnapshot.copy(template: template, formulario: formulario)
+        TemplateQuestionSnapshot.copy(template: template, formulario: formulario)
         formulario.criar_avaliacoes_pendentes!
       end
     end
@@ -229,32 +229,7 @@ module Formularios
     # - Consulta o banco de dados.
     # - Não altera registros.
     def validate_turmas_sem_formulario
-      raise Error, TURMA_COM_FORMULARIO if formulario_duplicado_para_turma?
-    end
-
-    # Verifica se alguma turma selecionada já possui formulário igual ao que
-    # está sendo criado.
-    #
-    # Argumentos:
-    # - Não recebe argumentos. Usa +turmas+, +template+ e +publico_alvo+.
-    #
-    # Retorno:
-    # - Retorna +true+ quando existe formulário para a mesma turma, template e
-    #   público-alvo.
-    # - Retorna +false+ quando não há duplicidade nessa combinação.
-    #
-    # Efeitos colaterais:
-    # - Consulta o banco de dados.
-    # - Não altera registros.
-    def formulario_duplicado_para_turma?
-      turmas
-        .joins(:formularios)
-        .where(formularios: { template_id: template.id, publico_alvo: publico_alvo_enum_value })
-        .exists?
-    end
-
-    def publico_alvo_enum_value
-      Formulario.publico_alvos[publico_alvo.to_s]
+      raise Error, TURMA_COM_FORMULARIO if turmas.joins(:formularios).exists?
     end
 
     # Valida se o público-alvo foi informado e é aceito pelo modelo.
