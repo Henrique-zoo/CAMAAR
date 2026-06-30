@@ -1,11 +1,25 @@
 # frozen_string_literal: true
 
+# Agrupa métodos de envio de e-mail transacional pela API Brevo.
+#
+# Controllers incluem este concern para enviar links de cadastro, redefinição
+# de senha e convites administrativos para usuários importados do SIGAA.
 module BrevoEmailable
   extend ActiveSupport::Concern
 
+  # Endpoint SMTP HTTP usado para envio de e-mails pela Brevo.
   BREVO_API_URL = URI("https://api.brevo.com/v3/smtp/email")
+  # Remetente padrão usado nos e-mails transacionais do CAMAAR.
   REMETENTE = { "name" => "CAMAAR Support", "email" => "rafaelsapienzapinheiro@gmail.com" }.freeze
 
+  # Envia um payload de e-mail para a API Brevo.
+  #
+  # @param payload [Hash] Dados do e-mail no formato esperado pela Brevo.
+  # @param contexto [String] Rótulo usado nos logs para identificar a operação.
+  # @return [Boolean] +true+ quando a API responde com sucesso; +false+ quando
+  #   falta chave de API, ocorre erro HTTP ou exceção.
+  # @side_effect Realiza requisição HTTPS externa e grava logs de sucesso ou
+  #   falha.
   def chamar_api_brevo(payload, contexto: "")
     api_key = brevo_api_key
     unless api_key.present?
@@ -38,6 +52,13 @@ module BrevoEmailable
     false
   end
 
+  # Envia e-mail de primeiro acesso solicitado pelo próprio usuário.
+  #
+  # @param destinatario [String] E-mail institucional do usuário.
+  # @param token [String] Token de cadastro que compõe o link de ativação.
+  # @return [Boolean] Resultado retornado por #chamar_api_brevo.
+  # @side_effect Dispara requisição para a Brevo contendo o link de criação de
+  #   senha.
   def enviar_email_cadastro(destinatario, token)
     url = "http://127.0.0.1:3000/cadastro/confirmar/?token=#{token}"
 
@@ -72,6 +93,12 @@ module BrevoEmailable
     chamar_api_brevo(payload, contexto: "Cadastro")
   end
 
+  # Envia e-mail de recuperação de senha.
+  #
+  # @param destinatario [String] E-mail cadastrado do usuário.
+  # @param token [String] Token de redefinição que compõe o link de nova senha.
+  # @return [Boolean] Resultado retornado por #chamar_api_brevo.
+  # @side_effect Dispara requisição para a Brevo contendo o link de redefinição.
   def enviar_email_redefinicao(destinatario, token)
     url = "http://127.0.0.1:3000/redefinir-senha/confirmar/?token=#{token}"
 
@@ -106,6 +133,13 @@ module BrevoEmailable
     chamar_api_brevo(payload, contexto: "Redefinição de senha")
   end
 
+  # Envia convite de cadastro disparado por administrador.
+  #
+  # @param destinatario [String] E-mail do usuário pendente importado do SIGAA.
+  # @param token [String] Token de cadastro usado no link de definição de senha.
+  # @param nome_admin [String] Nome do administrador remetente exibido no e-mail.
+  # @return [Boolean] Resultado retornado por #chamar_api_brevo.
+  # @side_effect Dispara requisição para a Brevo com convite de primeiro acesso.
   def enviar_email_convite_admin(destinatario, token, nome_admin)
     url = "http://127.0.0.1:3000/cadastro/confirmar/?token=#{token}"
 
@@ -141,6 +175,10 @@ module BrevoEmailable
 
   private
 
+  # Obtém a chave de API da Brevo.
+  #
+  # @return [String, nil] Chave encontrada em variável de ambiente ou
+  #   credenciais Rails; +nil+ quando ausente ou inacessível.
   def brevo_api_key
     ENV["BREVO_API_KEY"].presence || Rails.application.credentials.dig(:brevo, :api_key)
   rescue ActiveSupport::MessageEncryptor::InvalidMessage, ActiveSupport::MessageVerifier::InvalidSignature

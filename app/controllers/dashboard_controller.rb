@@ -2,10 +2,20 @@
 
 require "json"
 
+# Controla as telas de dashboard e as ações administrativas ligadas ao SIGAA.
+#
+# As ações administrativas importam dados institucionais, sincronizam a base
+# local e disparam convites para usuários pendentes definirem senha.
 class DashboardController < ApplicationController
   include BrevoEmailable
   before_action :verificar_admin, only: [ :gerenciamento, :importar_dados, :enviar_solicitacoes ]
 
+  # Exibe o dashboard inicial do usuário autenticado.
+  #
+  # @return [void]
+  # @side_effect Redireciona usuários não autenticados para a página inicial e,
+  #   para usuários autenticados, popula a lista simulada de turmas exibida na
+  #   view.
   def index
     if current_user.nil?
       redirect_to root_path, flash: { error: "Acesso restrito. Por favor, faça login para continuar." } and return
@@ -20,9 +30,23 @@ class DashboardController < ApplicationController
     ]
   end
 
+  # Exibe a página administrativa de gerenciamento.
+  #
+  # @return [void]
+  # @side_effect Renderiza a tela com ações de importação do SIGAA e envio de
+  #   solicitações de cadastro.
   def gerenciamento
   end
 
+  # Envia solicitações de definição de senha para usuários importados pendentes.
+  #
+  # Filtra docentes e discentes pendentes pelo departamento do administrador
+  # logado, cria tokens de cadastro e envia convites por e-mail.
+  #
+  # @return [void]
+  # @side_effect Consulta usuários, cria registros de Token, chama a API de
+  #   e-mail via Brevo e redireciona para a página de gerenciamento com flash de
+  #   sucesso, aviso ou erro parcial.
   def enviar_solicitacoes
     depto_id = current_user.perfil_adm&.departamento_id
 
@@ -72,6 +96,19 @@ class DashboardController < ApplicationController
     end
   end
 
+  # Importa e sincroniza matérias, turmas, docentes, discentes e matrículas.
+  #
+  # Lê o arquivo +db/usuarios_sigaa.json+, cria ou atualiza registros locais
+  # conforme as matrículas e códigos vindos da fonte SIGAA simulada e remove
+  # dados que deixaram de aparecer na carga atual, preservando administradores.
+  #
+  # @return [void]
+  # @side_effect Lê arquivo JSON, altera Materia, Turma, Usuario,
+  #   PerfilDocente, PerfilDiscente e ParticipacaoTurma no banco, remove dados
+  #   obsoletos e redireciona para a página de gerenciamento com flash de
+  #   sucesso ou erro parcial.
+  # @raise [JSON::ParserError] Quando o arquivo JSON existe, mas contém dados
+  #   inválidos para parse.
   def importar_dados
     caminho_arquivo = Rails.root.join("db", "usuarios_sigaa.json")
     unless File.exist?(caminho_arquivo)
@@ -186,6 +223,11 @@ class DashboardController < ApplicationController
 
   private
 
+  # Garante que apenas administradores acessem ações restritas.
+  #
+  # @return [void]
+  # @side_effect Quando o usuário não é administrador, limpa a sessão e
+  #   redireciona para a tela inicial com mensagem de acesso restrito.
   def verificar_admin
     if current_user.nil? || !current_user.administrador?
       session.clear
