@@ -163,4 +163,43 @@ RSpec.describe Formularios::CreateFromTemplate do
       expect(Formulario.count).to eq(0)
     end
   end
+
+  describe ".validate_preparacao!" do
+    def validate_preparacao(**overrides)
+      described_class.validate_preparacao!(
+        template_id: template.id,
+        turma_ids: [ turma_a.id ],
+        perfil_adm: perfil_adm,
+        **overrides
+      )
+    end
+
+    it "retorna nil quando dados são válidos" do
+      expect(validate_preparacao).to be_nil
+    end
+
+    it "levanta erro quando template não possui questões" do
+      template_vazio = create_template_with_questoes(titulo: "Vazio", adm: perfil_adm)
+      template_vazio.utilizacoes_questoes.destroy_all
+
+      expect do
+        validate_preparacao(template_id: template_vazio.id)
+      end.to raise_error(Formularios::Error, described_class::SEM_QUESTOES)
+    end
+
+    it "levanta erro quando turma não existe" do
+      expect do
+        validate_preparacao(turma_ids: [ 999_999 ])
+      end.to raise_error(Formularios::Error, described_class::TURMAS_INVALIDAS)
+    end
+
+    it "levanta erro quando turma pertence a outro departamento" do
+      outro_departamento = Departamento.create!(nome: "IC #{SecureRandom.hex(2)}")
+      turma_externa = create_turma(nome_materia: "ES", numero: 99, departamento: outro_departamento)
+
+      expect do
+        validate_preparacao(turma_ids: [ turma_externa.id ])
+      end.to raise_error(Formularios::Error, described_class::TURMAS_INVALIDAS)
+    end
+  end
 end
