@@ -192,7 +192,11 @@ class FormulariosController < ApplicationController
   end
 
   def authorize_formulario!
+    unless current_user&.administrador?
+      redirect_to avaliacoes_pendentes_path, alert: "Apenas administradores possuem acesso a este recurso"
+      return
+    end
+
     authorize! Formulario
   end
-
 end

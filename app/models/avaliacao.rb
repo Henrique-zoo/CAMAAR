@@ -80,7 +80,7 @@ class Avaliacao < ApplicationRecord
   private
 
   ##
-  # Validação customizada. Garante que a participação vinculada a esta avaliação pertence à mesma turma 
+  # Validação customizada. Garante que a participação vinculada a esta avaliação pertence à mesma turma
   # para a qual o formulário foi designado.
   #
   # Argumentos:

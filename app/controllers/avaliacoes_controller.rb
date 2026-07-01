@@ -49,7 +49,7 @@ class AvaliacoesController < ApplicationController
   end
 
   ##
-  # Processa a submissão do formulário preenchido pelo discente, validando se as regras foram cumpridas 
+  # Processa a submissão do formulário preenchido pelo discente, validando se as regras foram cumpridas
   # antes de repassar para a transação de salvamento.
   #
   # Argumentos:
