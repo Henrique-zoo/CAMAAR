@@ -106,12 +106,20 @@ class Formulario < ApplicationRecord
   # - Relação com +adm_id+ diferente do administrador.
   scope :criados_por_outros, ->(adm) { where.not(adm_id: adm&.id) }
 
+  ##
   # Retorna as participações na turma que compõem o público-alvo do formulário.
+  #
+  # Argumentos:
+  # - Não recebe argumentos. Usa +turma+ e +publico_alvo+ do formulário.
   #
   # Retorno:
   # - Participações docentes quando +publico_alvo+ é +docentes+.
   # - Participações discentes quando +publico_alvo+ é +discentes+.
   # - Relação vazia quando o público-alvo não é reconhecido.
+  #
+  # Efeitos colaterais:
+  # - Não altera o banco de dados.
+  # - Retorna relações que podem consultar o banco quando materializadas.
   def participacoes_alvo
     return turma.participantes_docentes if docentes?
     return turma.participantes_discentes if discentes?
@@ -119,7 +127,12 @@ class Formulario < ApplicationRecord
     ParticipacaoTurma.none
   end
 
+  ##
   # Cria uma avaliação pendente para cada participação do público-alvo.
+  #
+  # Argumentos:
+  # - Não recebe argumentos. Usa as participações retornadas por
+  #   +participacoes_alvo+.
   #
   # Retorno:
   # - +nil+ após processar todas as participações.
@@ -133,6 +146,7 @@ class Formulario < ApplicationRecord
     end
   end
 
+  ##
   # Verifica se o formulário foi criado pelo administrador informado.
   #
   # Argumentos:
@@ -140,6 +154,10 @@ class Formulario < ApplicationRecord
   #
   # Retorno:
   # - +true+ quando +adm_id+ coincide com o id do administrador.
+  # - +false+ quando o perfil está ausente ou pertence a outro administrador.
+  #
+  # Efeitos colaterais:
+  # - Não altera o banco de dados nem modifica estado interno.
   def criado_por?(perfil_adm)
     adm_id == perfil_adm&.id
   end

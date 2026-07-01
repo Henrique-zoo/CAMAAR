@@ -8,6 +8,7 @@ class TemplatesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_template, only: %i[show edit update destroy]
 
+  ##
   # Lista os templates visíveis para o administrador autenticado.
   #
   # Argumentos:
@@ -32,6 +33,7 @@ class TemplatesController < ApplicationController
     @other_templates = templates.criados_por_outros(current_administrador)
   end
 
+  ##
   # Exibe um template específico.
   #
   # Argumentos:
@@ -48,6 +50,7 @@ class TemplatesController < ApplicationController
     authorize! @template
   end
 
+  ##
   # Prepara o formulário de criação de template.
   #
   # Argumentos:
@@ -67,6 +70,7 @@ class TemplatesController < ApplicationController
     authorize! @template
   end
 
+  ##
   # Cria um template com os parâmetros enviados pelo formulário.
   #
   # Argumentos:
@@ -96,6 +100,7 @@ class TemplatesController < ApplicationController
     end
   end
 
+  ##
   # Prepara o formulário de edição de um template existente.
   #
   # Argumentos:
@@ -116,6 +121,7 @@ class TemplatesController < ApplicationController
     authorize! @template
   end
 
+  ##
   # Atualiza um template existente e sua estrutura de questões/opções.
   #
   # Argumentos:
@@ -147,6 +153,7 @@ class TemplatesController < ApplicationController
     end
   end
 
+  ##
   # Remove um template existente.
   #
   # Argumentos:
@@ -171,6 +178,7 @@ class TemplatesController < ApplicationController
 
   private
 
+  ##
   # Carrega o template informado na rota.
   #
   # Argumentos:
@@ -187,6 +195,7 @@ class TemplatesController < ApplicationController
     @template = Template.find(params[:id])
   end
 
+  ##
   # Monta um novo template a partir dos parâmetros permitidos.
   #
   # Argumentos:
@@ -205,6 +214,7 @@ class TemplatesController < ApplicationController
     end
   end
 
+  ##
   # Garante que o template possua campos aninhados mínimos para o formulário.
   #
   # Argumentos:
@@ -226,6 +236,7 @@ class TemplatesController < ApplicationController
     end
   end
 
+  ##
   # Executa a atualização do template dentro de uma transação.
   #
   # Argumentos:
@@ -246,6 +257,7 @@ class TemplatesController < ApplicationController
     end
   end
 
+  ##
   # Prepara registros já persistidos para receber novos números de ordenação.
   #
   # Argumentos:
@@ -265,6 +277,7 @@ class TemplatesController < ApplicationController
     )
   end
 
+  ##
   # Atualiza o template ou interrompe a transação atual.
   #
   # Argumentos:
@@ -282,6 +295,7 @@ class TemplatesController < ApplicationController
     @template.update(template_params) || raise(ActiveRecord::Rollback)
   end
 
+  ##
   # Filtra os parâmetros permitidos para criação e atualização de templates.
   #
   # Argumentos:

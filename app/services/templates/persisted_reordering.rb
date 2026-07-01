@@ -11,6 +11,7 @@ module Templates
 
     private_constant :BOOLEAN
 
+    ##
     # Executa a preparação de reordenação para um template.
     #
     # Argumentos:
@@ -29,6 +30,7 @@ module Templates
       new(template:, attributes:).prepare
     end
 
+    ##
     # Inicializa a preparação com o template e os atributos do formulário.
     #
     # Argumentos:
@@ -46,6 +48,7 @@ module Templates
       @utilizacoes_attributes = nested_values(attributes)
     end
 
+    ##
     # Prepara utilizações de questões e opções para a reordenação.
     #
     # Argumentos:
@@ -65,6 +68,7 @@ module Templates
 
     attr_reader :template, :utilizacoes_attributes
 
+    ##
     # Atualiza temporariamente o número das utilizações persistidas.
     #
     # Argumentos:
@@ -81,6 +85,7 @@ module Templates
         .find_each { |utilizacao| renumber(utilizacao) }
     end
 
+    ##
     # Atualiza temporariamente o número das opções persistidas.
     #
     # Argumentos:
@@ -97,6 +102,7 @@ module Templates
         .find_each { |opcao| renumber(opcao) }
     end
 
+    ##
     # Coleta ids de opções persistidas que serão reordenadas.
     #
     # Argumentos:
@@ -113,6 +119,7 @@ module Templates
       end
     end
 
+    ##
     # Extrai os atributos de opções de uma utilização de questão.
     #
     # Argumentos:
@@ -130,6 +137,7 @@ module Templates
       nested_values(nested_attribute(question_attributes, :opcoes_attributes))
     end
 
+    ##
     # Seleciona ids persistidos entre atributos aninhados.
     #
     # Argumentos:
@@ -147,6 +155,7 @@ module Templates
         .filter_map { |item| persisted_id_with_number(item) }
     end
 
+    ##
     # Verifica se um item aninhado está marcado para destruição.
     #
     # Argumentos:
@@ -163,6 +172,7 @@ module Templates
       BOOLEAN.cast(nested_attribute(attributes, :_destroy))
     end
 
+    ##
     # Retorna o id de um item persistido que possui número enviado.
     #
     # Argumentos:
@@ -181,6 +191,7 @@ module Templates
       id if id.present? && number.present?
     end
 
+    ##
     # Atribui um número temporário negativo a um registro.
     #
     # Argumentos:
@@ -196,6 +207,7 @@ module Templates
       record.update_columns(numero: -record.id)
     end
 
+    ##
     # Lê um atributo aceitando chaves símbolo ou string.
     #
     # Argumentos:
@@ -214,6 +226,7 @@ module Templates
       attributes[key] || attributes[key.to_s]
     end
 
+    ##
     # Normaliza atributos aninhados para uma lista iterável.
     #
     # Argumentos:

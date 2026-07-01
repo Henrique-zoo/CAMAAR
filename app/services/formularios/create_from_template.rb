@@ -25,6 +25,7 @@ module Formularios
     # Mensagem quando o público-alvo não foi selecionado.
     SEM_PUBLICO_ALVO = "Por favor, selecione o público-alvo do formulário"
 
+    ##
     # Executa a criação de formulários a partir de um template.
     #
     # Argumentos:
@@ -45,6 +46,7 @@ module Formularios
       new(template_id:, turma_ids:, publico_alvo:, perfil_adm:).call
     end
 
+    ##
     # Valida se o template e as turmas permitem preparar a publicação.
     #
     # Argumentos:
@@ -63,6 +65,7 @@ module Formularios
       new(template_id:, turma_ids:, publico_alvo: :docentes, perfil_adm:).validate_preparacao!
     end
 
+    ##
     # Inicializa o serviço com os dados necessários para criar formulários.
     #
     # Argumentos:
@@ -85,6 +88,7 @@ module Formularios
       @perfil_adm = perfil_adm
     end
 
+    ##
     # Valida os pré-requisitos para publicar formulários a partir do template.
     #
     # Argumentos:
@@ -104,6 +108,7 @@ module Formularios
       validate_turmas_sem_formulario
     end
 
+    ##
     # Executa a criação completa dos formulários.
     #
     # Argumentos:
@@ -128,6 +133,7 @@ module Formularios
 
     attr_reader :template_id, :turma_ids, :publico_alvo, :perfil_adm
 
+    ##
     # Cria um formulário para cada turma selecionada.
     #
     # Argumentos:
@@ -145,6 +151,7 @@ module Formularios
       end
     end
 
+    ##
     # Cria um formulário para uma turma específica.
     #
     # Argumentos:
@@ -169,6 +176,7 @@ module Formularios
       end
     end
 
+    ##
     # Valida se há pelo menos uma turma selecionada.
     #
     # Argumentos:
@@ -184,6 +192,7 @@ module Formularios
       raise Error, SEM_TURMAS if turma_ids.empty?
     end
 
+    ##
     # Valida se o template possui questões publicáveis.
     #
     # Argumentos:
@@ -200,6 +209,7 @@ module Formularios
       raise Error, SEM_QUESTOES if template.utilizacoes_questoes.raizes.none?
     end
 
+    ##
     # Valida se todas as turmas informadas existem no escopo do administrador.
     #
     # Argumentos:
@@ -216,7 +226,9 @@ module Formularios
       raise Error, TURMAS_INVALIDAS if turmas.count != turma_ids.size
     end
 
-    # Valida se as turmas selecionadas ainda não possuem formulário.
+    ##
+    # Valida se as turmas selecionadas ainda não possuem formulário para o
+    # mesmo template e público-alvo.
     #
     # Argumentos:
     # - Não recebe argumentos. Usa +turmas+.
@@ -229,9 +241,17 @@ module Formularios
     # - Consulta o banco de dados.
     # - Não altera registros.
     def validate_turmas_sem_formulario
-      raise Error, TURMA_COM_FORMULARIO if turmas.joins(:formularios).exists?
+      raise Error, TURMA_COM_FORMULARIO if formulario_duplicado?
     end
 
+    def formulario_duplicado?
+      Formulario
+        .where(turma_id: turmas.select(:id))
+        .where(template_id: template_id, publico_alvo: publico_alvo)
+        .exists?
+    end
+
+    ##
     # Valida se o público-alvo foi informado e é aceito pelo modelo.
     #
     # Argumentos:
@@ -247,6 +267,7 @@ module Formularios
       raise Error, SEM_PUBLICO_ALVO unless publico_alvo_valido?
     end
 
+    ##
     # Informa se o público-alvo é válido para formulários.
     #
     # Argumentos:
@@ -263,6 +284,7 @@ module Formularios
       publico_alvo.present? && Formulario.publico_alvos.key?(publico_alvo.to_s)
     end
 
+    ##
     # Carrega o template de origem.
     #
     # Argumentos:
@@ -279,6 +301,7 @@ module Formularios
       @template ||= Template.find(template_id)
     end
 
+    ##
     # Carrega as turmas válidas para o administrador e semestre atual.
     #
     # Argumentos:

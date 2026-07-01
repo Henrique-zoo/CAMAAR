@@ -10,6 +10,7 @@ module Formularios
     # Texto descritivo do erro de negócio exposto ao usuário.
     attr_reader :message
 
+    ##
     # Inicializa a exceção com a mensagem exibida ao usuário.
     #
     # Argumentos:
@@ -18,6 +19,10 @@ module Formularios
     # Retorno:
     # - Instância de +Formularios::Error+ com +message+ acessível via
     #   +attr_reader+.
+    #
+    # Efeitos colaterais:
+    # - Modifica o estado interno da exceção ao preencher +@message+.
+    # - Não altera o banco de dados.
     def initialize(message)
       @message = message
       super

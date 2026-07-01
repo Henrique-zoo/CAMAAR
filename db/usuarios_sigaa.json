@@ -3,17 +3,17 @@
     {
       "codigo": "CIC0001",
       "nome": "Estruturas de Dados",
-      "departamento_id_temp": 1
+      "departamento_id": 1
     },
     {
       "codigo": "CIC0002",
       "nome": "Bancos de Dados",
-      "departamento_id_temp": 1
+      "departamento_id": 1
     },
     {
       "codigo": "MAT0001",
       "nome": "Cálculo 1",
-      "departamento_id_temp": 2
+      "departamento_id": 2
     }
   ],
   "turmas": [
@@ -60,7 +60,7 @@
       "nome": "Professor Engenharia",
       "email": "engsoftwareg@gmail.com",
       "status": 0,
-      "departamento_id_temp": 2,
+      "departamento_id": 2,
       "turmas_lecionadas": [
         {
           "materia_codigo": "CIC0002",

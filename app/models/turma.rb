@@ -58,7 +58,7 @@ class Turma < ApplicationRecord
 
   def self.semestre_atual
     mes = Date.current.month
-    return :primeiro if mes <= 6
+    return :primeiro if mes <= 7
     return :segundo if mes <= 11
 
     :verao

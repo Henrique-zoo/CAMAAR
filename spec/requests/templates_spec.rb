@@ -209,7 +209,7 @@ RSpec.describe "Templates", type: :request do
 
       pagina = Nokogiri::HTML(response.body)
       botao = pagina.at_css(
-        ".template-page__header .app-button--accent"
+        ".app-page__header--split .app-button--accent"
       )
 
       expect(botao.text.strip).to eq("Usar em Formulário")
@@ -344,10 +344,12 @@ RSpec.describe "Templates", type: :request do
       expect(response.body).to include("template-form#destroyQuestion")
       expect(response.body).to include("template-form#destroyOption")
       expect(response.body).to include("template-form#ensureObjectiveOptions")
-      expect(response.body).not_to include("checkbox")
-      expect(response.body).not_to include("<span>Remover")
 
       pagina = Nokogiri::HTML(response.body)
+      formulario_template = pagina.at_css("form.template-form")
+      expect(formulario_template.css("input[type='checkbox']")).to be_empty
+      expect(formulario_template.text).not_to include("Remover")
+
       placeholders = pagina
         .css(
           '[data-template-form-question-index="0"] ' \

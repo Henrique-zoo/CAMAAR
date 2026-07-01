@@ -166,6 +166,65 @@ RSpec.describe "Formularios", type: :request do
     end
   end
 
+  describe "GET /formularios/:id/exportar_csv" do
+    it "exporta respostas registradas e marca questões sem resposta" do
+      discente_com_texto = create_usuario(nome: "Discente Texto", matricula: "20260001")
+      discente_com_opcao = create_usuario(nome: "Discente Opção", matricula: "20260002")
+      participacao_texto = create_participacao(usuario: discente_com_texto, turma: turma_a, tipo_participacao: :discente)
+      participacao_opcao = create_participacao(usuario: discente_com_opcao, turma: turma_a, tipo_participacao: :discente)
+      discente_com_texto.update!(matricula: "20260001")
+      discente_com_opcao.update!(matricula: "20260002")
+      formulario = create_formulario(
+        turma: turma_a,
+        adm: admin.perfil_adm,
+        template: template,
+        publico_alvo: :discentes,
+        criar_avaliacoes: true
+      )
+      questao_discursiva = formulario.questoes.find(&:discursiva?)
+      questao_objetiva = formulario.questoes.find(&:objetiva?)
+      avaliacao_texto = formulario.avaliacoes.find_by!(participacao_turma: participacao_texto)
+      avaliacao_opcao = formulario.avaliacoes.find_by!(participacao_turma: participacao_opcao)
+
+      Resposta.new(avaliacao: avaliacao_texto, questao: questao_discursiva).tap do |resposta|
+        resposta.build_texto(texto: "Comentário textual")
+        resposta.save!
+      end
+      Resposta.new(avaliacao: avaliacao_opcao, questao: questao_objetiva).tap do |resposta|
+        resposta.opcoes_escolhidas.build(opcao: questao_objetiva.opcoes.first)
+        resposta.save!
+      end
+
+      sign_in_as(admin)
+      get exportar_csv_formulario_path(formulario)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("text/csv")
+      expect(response.headers["Content-Disposition"]).to include("resultados_turma_#{turma_a.materia.codigo}")
+      expect(response.body).to include("Aluno;Matrícula;#{questao_discursiva.enunciado};#{questao_objetiva.enunciado}")
+      expect(response.body).to include("Discente Texto;20260001;Comentário textual;Sem resposta")
+      expect(response.body).to include("Discente Opção;20260002;Sem resposta;#{questao_objetiva.opcoes.first.texto}")
+    end
+
+    it "impede exportar formulário de outro departamento" do
+      outro_departamento = Departamento.create!(nome: "Outro #{SecureRandom.hex(2)}")
+      outra_turma = create_turma(
+        nome_materia: "Externa",
+        numero: 1,
+        departamento: outro_departamento
+      )
+      formulario_externo = create_formulario(turma: outra_turma)
+
+      sign_in_as(admin)
+      get exportar_csv_formulario_path(formulario_externo)
+
+      expect(response).to redirect_to(formularios_path)
+      expect(flash[:alert]).to eq(
+        "Você não tem permissão para exportar os resultados desse formulário."
+      )
+    end
+  end
+
   describe "GET /formularios/new" do
     it "pré-seleciona o template recebido pela URL" do
       sign_in_as(admin)
@@ -255,7 +314,11 @@ RSpec.describe "Formularios", type: :request do
       expect(pagina.css("select[name='publico_alvo']")).to be_empty
       valores_publico_alvo = pagina.css("input[name='publico_alvo'][type='radio']").map { |input| input["value"] }
       expect(valores_publico_alvo).to contain_exactly("docentes", "discentes")
-      expect(pagina.at_css(".formulario-form-actions input.app-button--accent[type='submit']")).to be_present
+      acoes = pagina.at_css(".app-actions.template-form__actions")
+
+      expect(acoes).to be_present
+      expect(acoes["class"]).not_to include("formulario-form-actions")
+      expect(acoes.at_css("input.app-button--accent[type='submit']")).to be_present
     end
   end
 

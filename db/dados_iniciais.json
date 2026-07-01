@@ -1,11 +1,11 @@
 {
   "departamentos": [
     {
-      "id_temporario": 1,
+      "id": 1,
       "nome": "Departamento de Informática"
     },
     {
-      "id_temporario": 2,
+      "id": 2,
       "nome": "Departamento de Matemática"
     }
   ],
@@ -13,17 +13,17 @@
     {
       "codigo": "CIC0001",
       "nome": "Estruturas de Dados",
-      "departamento_id_temp": 1
+      "departamento_id": 1
     },
     {
       "codigo": "CIC0002",
       "nome": "Bancos de Dados",
-      "departamento_id_temp": 1
+      "departamento_id": 1
     },
     {
       "codigo": "MAT0001",
       "nome": "Cálculo 1",
-      "departamento_id_temp": 2
+      "departamento_id": 2
     }
   ],
   "turmas": [
@@ -71,7 +71,7 @@
       "email": "alessandro.admin@camaar.edu",
       "password": "senhaSeguraAdmin1",
       "status": 1,
-      "departamento_id_temp": 1,
+      "departamento_id": 1,
       "perfil": "docente",
       "turmas_lecionadas": [
         {
@@ -88,7 +88,7 @@
       "email": "lucas.admin@camaar.edu",
       "password": "senhaSeguraAdmin2",
       "status": 1,
-      "departamento_id_temp": 1,
+      "departamento_id": 1,
       "perfil": "discente",
       "turmas_matriculadas": [
         {
@@ -105,7 +105,7 @@
       "email": "maria.admin@camaar.edu",
       "password": "senhaSeguraAdmin3",
       "status": 1,
-      "departamento_id_temp": 2,
+      "departamento_id": 2,
       "perfil": "discente",
       "turmas_matriculadas": [
         {
@@ -122,7 +122,7 @@
       "email": "juliana.admin@camaar.edu",
       "password": "senhaSeguraAdmin4",
       "status": 1,
-      "departamento_id_temp": 2,
+      "departamento_id": 2,
       "perfil": "docente",
       "turmas_lecionadas": [
         {
@@ -141,7 +141,7 @@
       "email": "beatriz.rocha@camaar.edu",
       "password": "senhaSeguraDocente1",
       "status": 1,
-      "departamento_id_temp": 1,
+      "departamento_id": 1,
       "turmas_lecionadas": [
         {
           "materia_codigo": "CIC0001",
@@ -157,7 +157,7 @@
       "email": "renato.costa@camaar.edu",
       "password": "senhaSeguraDocente2",
       "status": 1,
-      "departamento_id_temp": 1,
+      "departamento_id": 1,
       "turmas_lecionadas": [
         {
           "materia_codigo": "CIC0002",
@@ -173,7 +173,7 @@
       "email": "marina.lima@camaar.edu",
       "password": "senhaSeguraDocente3",
       "status": 1,
-      "departamento_id_temp": 1,
+      "departamento_id": 1,
       "turmas_lecionadas": [
         {
           "materia_codigo": "CIC0002",
@@ -189,7 +189,7 @@
       "email": "paulo.nunes@camaar.edu",
       "password": "senhaSeguraDocente4",
       "status": 1,
-      "departamento_id_temp": 2,
+      "departamento_id": 2,
       "turmas_lecionadas": [
         {
           "materia_codigo": "MAT0001",
@@ -198,6 +198,119 @@
           "semestre": 2
         }
       ]
+    }
+  ],
+  "templates": [
+    {
+      "titulo": "Avaliação Docente Semestral",
+      "descricao": "Modelo para avaliar organização, didática e acompanhamento das turmas.",
+      "adm_matricula": "123456",
+      "questoes": [
+        {
+          "numero": 1,
+          "tipo": "objetiva",
+          "enunciado": "Como você avalia a clareza das aulas?",
+          "opcoes": [
+            "Muito baixa",
+            "Baixa",
+            "Adequada",
+            "Alta",
+            "Muito alta"
+          ]
+        },
+        {
+          "numero": 2,
+          "tipo": "objetiva",
+          "enunciado": "Como você avalia a disponibilidade para tirar dúvidas?",
+          "opcoes": [
+            "Muito baixa",
+            "Baixa",
+            "Adequada",
+            "Alta",
+            "Muito alta"
+          ]
+        },
+        {
+          "numero": 3,
+          "tipo": "discursiva",
+          "enunciado": "Quais pontos poderiam melhorar na condução da disciplina?"
+        }
+      ]
+    },
+    {
+      "titulo": "Acompanhamento Discente de Turma",
+      "descricao": "Modelo para docentes acompanharem engajamento e dificuldades da turma.",
+      "adm_matricula": "555666",
+      "questoes": [
+        {
+          "numero": 1,
+          "tipo": "objetiva",
+          "enunciado": "Como você avalia a participação geral da turma?",
+          "opcoes": [
+            "Baixa",
+            "Regular",
+            "Boa",
+            "Excelente"
+          ]
+        },
+        {
+          "numero": 2,
+          "tipo": "discursiva",
+          "enunciado": "Quais temas exigem reforço nas próximas aulas?"
+        }
+      ]
+    },
+    {
+      "titulo": "Avaliação de Infraestrutura da Turma",
+      "descricao": "Modelo para avaliar recursos, ambiente e suporte disponíveis para a turma.",
+      "adm_matricula": "444333",
+      "questoes": [
+        {
+          "numero": 1,
+          "tipo": "objetiva",
+          "enunciado": "Como você avalia os recursos disponíveis para as aulas?",
+          "opcoes": [
+            "Insuficientes",
+            "Regulares",
+            "Bons",
+            "Excelentes"
+          ]
+        },
+        {
+          "numero": 2,
+          "tipo": "discursiva",
+          "enunciado": "Que melhorias de infraestrutura ajudariam a turma?"
+        }
+      ]
+    }
+  ],
+  "formularios": [
+    {
+      "template_titulo": "Avaliação Docente Semestral",
+      "adm_matricula": "123456",
+      "materia_codigo": "CIC0001",
+      "numero_turma": 2,
+      "ano": 2026,
+      "semestre": 1,
+      "publico_alvo": "docentes"
+    },
+    {
+      "template_titulo": "Acompanhamento Discente de Turma",
+      "adm_matricula": "555666",
+      "materia_codigo": "CIC0002",
+      "numero_turma": 2,
+      "ano": 2026,
+      "semestre": 1,
+      "publico_alvo": "discentes"
+    },
+    {
+      "template_titulo": "Avaliação de Infraestrutura da Turma",
+      "adm_matricula": "444333",
+      "materia_codigo": "MAT0001",
+      "numero_turma": 2,
+      "ano": 2026,
+      "semestre": 1,
+      "publico_alvo": "docentes"
     }
   ]
 }

@@ -66,7 +66,10 @@
     <div class="search-suggestions" data-search-target="results" hidden></div>
   </div>
 
-  <details class="user-dropdown">
+  <details
+    class="user-dropdown"
+    data-controller="user-menu"
+    data-action="click@window->user-menu#closeFromOutside keydown.esc@window->user-menu#closeOnEscape">
     <summary class="user-avatar" aria-label="Abrir menu do usuário">
       <%= current_user.nome.first.upcase %>
     </summary>

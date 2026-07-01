@@ -1,5 +1,6 @@
 # Helper de apresentação para as telas de templates.
 module TemplatesHelper
+  ##
   # Converte o número de uma opção em rótulo alfabético.
   #
   # Argumentos:

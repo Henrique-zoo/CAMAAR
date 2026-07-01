@@ -80,5 +80,18 @@ RSpec.describe "Dashboard", type: :request do
       expect(response.body).to include('Gerenciamento')
       expect(response.body).to include(gerenciamento_path)
     end
+
+    it "prepara o menu do usuário para fechar ao clicar fora" do
+      allow_any_instance_of(ApplicationController).to receive(:current_user).and_return(usuario_administrador)
+
+      get avaliacoes_path
+
+      pagina = Nokogiri::HTML(response.body)
+      menu_usuario = pagina.at_css(".user-dropdown")
+
+      expect(menu_usuario["data-controller"]).to eq("user-menu")
+      expect(menu_usuario["data-action"]).to include("click@window->user-menu#closeFromOutside")
+      expect(menu_usuario["data-action"]).to include("keydown.esc@window->user-menu#closeOnEscape")
+    end
   end
 end

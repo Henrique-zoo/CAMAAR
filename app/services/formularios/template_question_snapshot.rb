@@ -6,6 +6,7 @@ module Formularios
   # A cópia cria um snapshot independente, evitando que mudanças futuras no
   # template alterem formulários já publicados.
   class TemplateQuestionSnapshot
+    ##
     # Copia as questões de um template para um formulário.
     #
     # Argumentos:
@@ -23,6 +24,7 @@ module Formularios
       new(template:, formulario:).copy
     end
 
+    ##
     # Inicializa o copiador de snapshot.
     #
     # Argumentos:
@@ -40,6 +42,7 @@ module Formularios
       @formulario = formulario
     end
 
+    ##
     # Copia todas as questões raiz ordenadas do template.
     #
     # Argumentos:
@@ -61,6 +64,7 @@ module Formularios
 
     attr_reader :template, :formulario
 
+    ##
     # Copia uma questão individual para o formulário.
     #
     # Argumentos:
@@ -84,6 +88,7 @@ module Formularios
       question.save!
     end
 
+    ##
     # Copia as opções de uma questão objetiva.
     #
     # Argumentos:

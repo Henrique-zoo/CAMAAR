@@ -166,7 +166,7 @@
 
 .search-container input[type="search"]:focus {
   border-color: var(--camaar-accent);
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14);
+  box-shadow: var(--camaar-focus-ring);
   outline: none;
 }
 

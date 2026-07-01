@@ -7,6 +7,7 @@
 class TemplatePolicy < ApplicationPolicy
   # Define quais templates ficam visíveis para o usuário atual.
   class Scope < ApplicationPolicy::Scope
+    ##
     # Resolve o escopo de templates autorizado.
     #
     # Argumentos:
@@ -27,6 +28,7 @@ class TemplatePolicy < ApplicationPolicy
     end
   end
 
+  ##
   # Autoriza acesso à listagem de templates.
   #
   # Argumentos:
@@ -42,6 +44,7 @@ class TemplatePolicy < ApplicationPolicy
     administrador?
   end
 
+  ##
   # Autoriza visualização de um template.
   #
   # Argumentos:
@@ -57,6 +60,7 @@ class TemplatePolicy < ApplicationPolicy
     administrador?
   end
 
+  ##
   # Autoriza acesso à tela de criação de template.
   #
   # Argumentos:
@@ -71,6 +75,7 @@ class TemplatePolicy < ApplicationPolicy
     create?
   end
 
+  ##
   # Autoriza criação de templates.
   #
   # Argumentos:
@@ -86,6 +91,7 @@ class TemplatePolicy < ApplicationPolicy
     administrador?
   end
 
+  ##
   # Autoriza acesso à tela de edição de template.
   #
   # Argumentos:
@@ -100,6 +106,7 @@ class TemplatePolicy < ApplicationPolicy
     update?
   end
 
+  ##
   # Autoriza alteração de um template.
   #
   # Argumentos:
@@ -115,6 +122,7 @@ class TemplatePolicy < ApplicationPolicy
     dono_do_template?
   end
 
+  ##
   # Autoriza exclusão de um template.
   #
   # Argumentos:
@@ -130,6 +138,7 @@ class TemplatePolicy < ApplicationPolicy
     dono_do_template?
   end
 
+  ##
   # Autoriza o uso de um template para preparar formulário.
   #
   # Argumentos:
@@ -147,6 +156,7 @@ class TemplatePolicy < ApplicationPolicy
 
   private
 
+  ##
   # Verifica se o usuário atual é dono do template avaliado.
   #
   # Argumentos:

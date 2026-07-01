@@ -19,22 +19,25 @@ module BrevoEmailable
   # enviados por este concern.
   REMETENTE = { "name" => "CAMAAR Support", "email" => "rafaelsapienzapinheiro@gmail.com" }.freeze
 
+  ##
   # Monta e dispara uma requisição HTTP POST para a API da Brevo com o
   # payload informado, tratando ausência de chave de API e erros
   # inesperados.
   #
-  # Argumentos::
-  # - +payload+ - Hash com o corpo da requisição a ser enviado em JSON
+  # Argumentos:
+  # - +payload+: Hash com o corpo da requisição a ser enviado em JSON
   #   para a API da Brevo (remetente, destinatário, assunto e conteúdo
   #   HTML do e-mail).
-  # - +contexto:+ - String opcional usada apenas para identificar a
+  # - +contexto:+: String opcional usada apenas para identificar a
   #   origem da chamada nos logs (ex.: "Cadastro", "Redefinição de
   #   senha"). Valor padrão: string vazia.
-  # Retorno:: +true+ se o e-mail foi enviado com sucesso (resposta HTTP
+  # Retorno:
+  # - +true+ se o e-mail foi enviado com sucesso (resposta HTTP
   #           2xx); +false+ se a chave de API não estiver configurada,
   #           se a API retornar uma resposta de erro, ou se ocorrer
   #           qualquer exceção durante a chamada.
-  # Efeitos colaterais:: Realiza uma chamada HTTP externa para a API da
+  # Efeitos colaterais:
+  # - Realiza uma chamada HTTP externa para a API da
   #                      Brevo (efeito de rede) e grava mensagens de
   #                      log (+Rails.logger.info+/+error+) descrevendo o
   #                      resultado da operação. Não realiza alterações
@@ -50,6 +53,7 @@ module BrevoEmailable
     false
   end
 
+  ##
   # Obtém a chave de API da Brevo a partir das credenciais criptografadas
   # do Rails.
   #
@@ -59,24 +63,30 @@ module BrevoEmailable
   # efetivamente é executada em tempo de execução. Mantido aqui sem
   # alteração de comportamento.
   #
-  # Argumentos:: Nenhum.
-  # Retorno:: String com a chave de API configurada, ou +nil+ caso não
+  # Argumentos:
+  # - Nenhum.
+  # Retorno:
+  # - String com a chave de API configurada, ou +nil+ caso não
   #           exista nenhuma credencial cadastrada para +brevo.api_key+.
-  # Efeitos colaterais:: Nenhum.
+  # Efeitos colaterais:
+  # - Nenhum.
   def brevo_api_key
     Rails.application.credentials.dig(:brevo, :api_key)
   end
 
+  ##
   # Verifica se a chave de API da Brevo está configurada, registrando um
   # log de erro caso não esteja.
   #
-  # Argumentos::
-  # - +api_key+ - String (ou +nil+) com a chave de API a ser verificada.
-  # - +contexto+ - String usada para identificar a origem da chamada na
+  # Argumentos:
+  # - +api_key+: String (ou +nil+) com a chave de API a ser verificada.
+  # - +contexto+: String usada para identificar a origem da chamada na
   #   mensagem de log em caso de erro.
-  # Retorno:: +true+ se +api_key+ estiver presente, +false+ caso
+  # Retorno:
+  # - +true+ se +api_key+ estiver presente, +false+ caso
   #           contrário.
-  # Efeitos colaterais:: Caso a chave não esteja configurada, grava uma
+  # Efeitos colaterais:
+  # - Caso a chave não esteja configurada, grava uma
   #                      mensagem de log de erro (+Rails.logger.error+).
   def brevo_api_key_configurada?(api_key, contexto)
     return true if api_key.present?
@@ -85,13 +95,17 @@ module BrevoEmailable
     false
   end
 
+  ##
   # Monta o conjunto de cabeçalhos HTTP exigidos pela API da Brevo.
   #
-  # Argumentos:: +api_key+ - String com a chave de API a ser enviada no
+  # Argumentos:
+  # - +api_key+: String com a chave de API a ser enviada no
   #              cabeçalho de autenticação.
-  # Retorno:: Hash contendo os cabeçalhos +Accept+, +api-key+ e
+  # Retorno:
+  # - Hash contendo os cabeçalhos +Accept+, +api-key+ e
   #           +Content-Type+.
-  # Efeitos colaterais:: Nenhum.
+  # Efeitos colaterais:
+  # - Nenhum.
   def brevo_headers(api_key)
     {
       "Accept" => "application/json",
@@ -100,13 +114,17 @@ module BrevoEmailable
     }
   end
 
+  ##
   # Constrói o cliente HTTP configurado para se comunicar com a API da
   # Brevo via HTTPS.
   #
-  # Argumentos:: Nenhum.
-  # Retorno:: Instância de +Net::HTTP+ configurada com o host e a porta
+  # Argumentos:
+  # - Nenhum.
+  # Retorno:
+  # - Instância de +Net::HTTP+ configurada com o host e a porta
   #           de +BREVO_API_URL+ e com +use_ssl+ habilitado.
-  # Efeitos colaterais:: Nenhum (apenas instancia o objeto; a conexão de
+  # Efeitos colaterais:
+  # - Nenhum (apenas instancia o objeto; a conexão de
   #                      rede só ocorre quando a requisição é de fato
   #                      executada em +chamar_api_brevo+).
   def brevo_http
@@ -115,17 +133,20 @@ module BrevoEmailable
     end
   end
 
+  ##
   # Monta o objeto de requisição HTTP POST a ser enviado para a API da
   # Brevo, já com cabeçalhos e corpo (payload serializado em JSON)
   # definidos.
   #
-  # Argumentos::
-  # - +payload+ - Hash a ser serializado em JSON e enviado como corpo da
+  # Argumentos:
+  # - +payload+: Hash a ser serializado em JSON e enviado como corpo da
   #   requisição.
-  # - +api_key+ - String com a chave de API usada para montar os
+  # - +api_key+: String com a chave de API usada para montar os
   #   cabeçalhos de autenticação.
-  # Retorno:: Instância de +Net::HTTP::Post+ pronta para ser executada.
-  # Efeitos colaterais:: Nenhum (apenas monta o objeto da requisição; o
+  # Retorno:
+  # - Instância de +Net::HTTP::Post+ pronta para ser executada.
+  # Efeitos colaterais:
+  # - Nenhum (apenas monta o objeto da requisição; o
   #                      envio efetivo ocorre em +chamar_api_brevo+).
   def brevo_request(payload, api_key)
     Net::HTTP::Post.new(BREVO_API_URL.path, brevo_headers(api_key)).tap do |request|
@@ -133,17 +154,20 @@ module BrevoEmailable
     end
   end
 
+  ##
   # Avalia a resposta HTTP retornada pela API da Brevo, registrando o
   # resultado (sucesso ou falha) no log da aplicação.
   #
-  # Argumentos::
-  # - +response+ - Objeto de resposta HTTP (+Net::HTTPResponse+)
+  # Argumentos:
+  # - +response+: Objeto de resposta HTTP (+Net::HTTPResponse+)
   #   retornado pela chamada à API.
-  # - +contexto+ - String usada para identificar a origem da chamada na
+  # - +contexto+: String usada para identificar a origem da chamada na
   #   mensagem de log.
-  # Retorno:: +true+ se a resposta for uma instância de
+  # Retorno:
+  # - +true+ se a resposta for uma instância de
   #           +Net::HTTPSuccess+ (status 2xx), +false+ caso contrário.
-  # Efeitos colaterais:: Grava uma mensagem de log (+info+ em caso de
+  # Efeitos colaterais:
+  # - Grava uma mensagem de log (+info+ em caso de
   #                      sucesso, +error+ em caso de falha, incluindo o
   #                      código de status e o corpo da resposta).
   def brevo_response_sucesso?(response, contexto)
@@ -156,17 +180,20 @@ module BrevoEmailable
     end
   end
 
+  ##
   # Monta e envia o e-mail de confirmação de cadastro (primeiro acesso),
   # contendo o link com o token para o usuário definir sua senha.
   #
-  # Argumentos::
-  # - +destinatario+ - String com o e-mail do usuário que receberá a
+  # Argumentos:
+  # - +destinatario+: String com o e-mail do usuário que receberá a
   #   mensagem.
-  # - +token+ - String com o token de cadastro a ser incluído na URL de
+  # - +token+: String com o token de cadastro a ser incluído na URL de
   #   confirmação.
-  # Retorno:: +true+ se o e-mail foi enviado com sucesso, +false+ caso
+  # Retorno:
+  # - +true+ se o e-mail foi enviado com sucesso, +false+ caso
   #           contrário (delegado a +chamar_api_brevo+).
-  # Efeitos colaterais:: Realiza uma chamada HTTP externa para a API da
+  # Efeitos colaterais:
+  # - Realiza uma chamada HTTP externa para a API da
   #                      Brevo (envio de e-mail) e grava mensagens de log
   #                      sobre o resultado. Não realiza alterações no
   #                      banco de dados.
@@ -204,17 +231,20 @@ module BrevoEmailable
     chamar_api_brevo(payload, contexto: "Cadastro")
   end
 
+  ##
   # Monta e envia o e-mail de redefinição de senha, contendo o link com o
   # token para o usuário escolher uma nova senha.
   #
-  # Argumentos::
-  # - +destinatario+ - String com o e-mail do usuário que receberá a
+  # Argumentos:
+  # - +destinatario+: String com o e-mail do usuário que receberá a
   #   mensagem.
-  # - +token+ - String com o token de redefinição a ser incluído na URL
+  # - +token+: String com o token de redefinição a ser incluído na URL
   #   de confirmação.
-  # Retorno:: +true+ se o e-mail foi enviado com sucesso, +false+ caso
+  # Retorno:
+  # - +true+ se o e-mail foi enviado com sucesso, +false+ caso
   #           contrário (delegado a +chamar_api_brevo+).
-  # Efeitos colaterais:: Realiza uma chamada HTTP externa para a API da
+  # Efeitos colaterais:
+  # - Realiza uma chamada HTTP externa para a API da
   #                      Brevo (envio de e-mail) e grava mensagens de log
   #                      sobre o resultado. Não realiza alterações no
   #                      banco de dados.
@@ -252,19 +282,22 @@ module BrevoEmailable
     chamar_api_brevo(payload, contexto: "Redefinição de senha")
   end
 
+  ##
   # Monta e envia o e-mail de convite de cadastro disparado por um
   # administrador para um novo usuário, contendo o link com o token para
   # definição de senha.
   #
-  # Argumentos::
-  # - +destinatario+ - String com o e-mail do usuário convidado.
-  # - +token+ - String com o token de cadastro a ser incluído na URL de
+  # Argumentos:
+  # - +destinatario+: String com o e-mail do usuário convidado.
+  # - +token+: String com o token de cadastro a ser incluído na URL de
   #   confirmação.
-  # - +nome_admin+ - String com o nome do administrador que está
+  # - +nome_admin+: String com o nome do administrador que está
   #   realizando o convite, exibido no assunto e no corpo do e-mail.
-  # Retorno:: +true+ se o e-mail foi enviado com sucesso, +false+ caso
+  # Retorno:
+  # - +true+ se o e-mail foi enviado com sucesso, +false+ caso
   #           contrário (delegado a +chamar_api_brevo+).
-  # Efeitos colaterais:: Realiza uma chamada HTTP externa para a API da
+  # Efeitos colaterais:
+  # - Realiza uma chamada HTTP externa para a API da
   #                      Brevo (envio de e-mail) e grava mensagens de log
   #                      sobre o resultado. Não realiza alterações no
   #                      banco de dados.
@@ -303,18 +336,22 @@ module BrevoEmailable
 
   private
 
+  ##
   # Obtém a chave de API da Brevo, priorizando a variável de ambiente
   # +BREVO_API_KEY+ e, na ausência dela, recorrendo às credenciais
   # criptografadas do Rails. Esta é a versão efetivamente utilizada pela
   # aplicação, pois reabre/sobrescreve a definição pública de
   # +brevo_api_key+ declarada no início do módulo.
   #
-  # Argumentos:: Nenhum.
-  # Retorno:: String com a chave de API encontrada (da variável de
+  # Argumentos:
+  # - Nenhum.
+  # Retorno:
+  # - String com a chave de API encontrada (da variável de
   #           ambiente ou das credenciais), ou +nil+ caso nenhuma das
   #           duas fontes possua um valor configurado, ou caso as
   #           credenciais não possam ser decifradas.
-  # Efeitos colaterais:: Nenhum (apenas leitura de variável de ambiente e
+  # Efeitos colaterais:
+  # - Nenhum (apenas leitura de variável de ambiente e
   #                      de credenciais; nenhuma gravação é realizada).
   def brevo_api_key
     ENV["BREVO_API_KEY"].presence || Rails.application.credentials.dig(:brevo, :api_key)

@@ -49,6 +49,7 @@ class Template < ApplicationRecord
   scope :criados_por, ->(adm) { where(adm_id: adm&.id) }
   scope :criados_por_outros, ->(adm) { where.not(adm_id: adm&.id) }
 
+  ##
   # Verifica se o template foi criado pelo administrador informado.
   #
   # Argumentos:
@@ -65,6 +66,7 @@ class Template < ApplicationRecord
     perfil_adm.present? && adm_id == perfil_adm.id
   end
 
+  ##
   # Retorna as questões do template na ordem configurada.
   #
   # Argumentos:
@@ -83,6 +85,7 @@ class Template < ApplicationRecord
 
   private
 
+  ##
   # Remove espaços extras do título antes da validação.
   #
   # Argumentos:
@@ -99,6 +102,7 @@ class Template < ApplicationRecord
     self.titulo = titulo.to_s.strip if titulo.present?
   end
 
+  ##
   # Preenche a data de criação do template quando ela ainda não existe.
   #
   # Argumentos:
@@ -114,6 +118,7 @@ class Template < ApplicationRecord
     self.criado_em ||= Time.current
   end
 
+  ##
   # Valida se o template mantém ao menos uma questão não removida.
   #
   # Argumentos:
@@ -133,6 +138,7 @@ class Template < ApplicationRecord
     errors.add(:utilizacoes_questoes, "deve conter ao menos uma questão")
   end
 
+  ##
   # Decide se uma utilização de questão aninhada deve ser ignorada.
   #
   # Argumentos:
@@ -153,6 +159,7 @@ class Template < ApplicationRecord
     questao_attributes_em_branco?(attributes["questao_attributes"] || {})
   end
 
+  ##
   # Verifica se os atributos apontam para uma utilização ou questão existente.
   #
   # Argumentos:
@@ -168,6 +175,7 @@ class Template < ApplicationRecord
     attributes.values_at("id", "questao_id").any?(&:present?)
   end
 
+  ##
   # Verifica se os atributos aninhados da questão estão em branco.
   #
   # Argumentos:
@@ -185,6 +193,7 @@ class Template < ApplicationRecord
       opcoes_attributes_em_branco?(attributes["opcoes_attributes"])
   end
 
+  ##
   # Verifica se todas as opções aninhadas estão em branco.
   #
   # Argumentos:
@@ -202,6 +211,7 @@ class Template < ApplicationRecord
     end
   end
 
+  ##
   # Normaliza atributos aninhados para uma lista iterável.
   #
   # Argumentos:

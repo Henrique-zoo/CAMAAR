@@ -90,7 +90,9 @@ RSpec.describe "Dashboard - Enviar Solicitações de Cadastro", type: :request d
 
       context "e todos os envios de e-mail ocorrem perfeitamente" do
         before do
-          allow_any_instance_of(DashboardController).to receive(:enviar_email_convite_admin).and_return(true)
+          allow_any_instance_of(SIGAA::SendPendingInvitations)
+            .to receive(:enviar_email_convite_admin)
+            .and_return(true)
         end
 
         it "gera um token de cadastro para cada um e redireciona com mensagem de total sucesso" do
@@ -99,7 +101,7 @@ RSpec.describe "Dashboard - Enviar Solicitações de Cadastro", type: :request d
           }.to change(Token, :count).by(2)
 
           expect(response).to redirect_to(gerenciamento_path)
-          expect(flash[:success]).to eq("Convites enviados com sucesso para os <strong>2</strong> usuários do departamento!")
+          expect(flash[:success]).to eq("Convites enviados com sucesso para os <strong>2</strong> usuários pendentes do departamento!")
           expect(docente_pendente.tokens.last.tipo).to eq("cadastro")
           expect(discente_pendente.tokens.last.tipo).to eq("cadastro")
         end
@@ -107,7 +109,7 @@ RSpec.describe "Dashboard - Enviar Solicitações de Cadastro", type: :request d
 
       context "e o serviço de e-mail falha ao processar algum usuário" do
         before do
-          allow_any_instance_of(DashboardController).to receive(:enviar_email_convite_admin) do |_, email, _, _|
+          allow_any_instance_of(SIGAA::SendPendingInvitations).to receive(:enviar_email_convite_admin) do |_, email, _, _|
             email == "discente_teste@unb.br"
           end
         end
