@@ -2,34 +2,57 @@
 
 require "json"
 
-# Controla telas de dashboard, pesquisa e ações administrativas ligadas ao SIGAA.
-#
-# Este controller reúne o painel do usuário, a busca global, a importação e
-# sincronização de dados do SIGAA e o envio de convites para definição de senha.
+# Controlador responsável pelo painel principal do sistema: exibição das
+# avaliações pendentes na tela inicial, pesquisa e sugestões de busca
+# (turmas, matérias, avaliações, templates e formulários), e pela área de
+# gerenciamento restrita a administradores (envio de convites de cadastro
+# e importação/sincronização de dados a partir do arquivo do SIGAA).
 class DashboardController < ApplicationController
   include BrevoEmailable
   before_action :verificar_usuario, only: %i[index pesquisar sugestoes]
   before_action :verificar_admin, only: %i[gerenciamento importar_dados enviar_solicitacoes]
 
-  # Exibe o dashboard do usuário autenticado.
+  # == Descrição
+  # Exibe a tela inicial do sistema, listando um resumo das avaliações
+  # pendentes do usuário autenticado.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum. Consome indiretamente o +current_user+ da sessão.
   #
-  # @return [void]
-  # @side_effect Consulta avaliações pendentes do usuário atual e atribui
-  #   +@avaliacoes_pendentes+ para a view.
+  # == Retorno
+  # * Renderiza a view +index+.
+  # * Popula a variável de instância +@avaliacoes_pendentes+ (limitada a
+  #   6 registros).
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura.
+  # * *Redirecionamento*: bloqueia e redireciona caso o usuário não esteja
+  #   autenticado (via +before_action :verificar_usuario+).
   def index
     @avaliacoes_pendentes = avaliacoes_do_usuario.limit(6)
   end
 
-  # Executa a pesquisa global do dashboard.
+  # == Descrição
+  # Processa a pesquisa disparada pela barra de busca, delegando para o
+  # fluxo de pesquisa por turma (quando +turma_id+ é informado) ou por
+  # termo livre.
   #
-  # Não recebe argumentos diretamente; usa +params[:q]+, +params[:turma_id]+ e
-  # filtros enviados pela requisição.
+  # == Argumentos
+  # * Consome +params[:q]+ (termo pesquisado), +params[:turma_id]+
+  #   (opcional) e os parâmetros de filtro processados por
+  #   +inicializar_pesquisa+.
   #
-  # @return [void]
-  # @side_effect Inicializa variáveis de instância usadas pela view e preenche
-  #   resultados de avaliações, templates ou formulários conforme o filtro.
+  # == Retorno
+  # * Renderiza a view +pesquisar+ (implicitamente).
+  # * Popula as variáveis de instância +@termo+, +@avaliacoes+,
+  #   +@templates+, +@formularios+ e +@tipos_selecionados+.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +pesquisar_por_turma+/+pesquisar_por_termo+.
+  # * *Redirecionamento*: bloqueia e redireciona caso o usuário não esteja
+  #   autenticado (via +before_action+). Interrompe a execução (sem
+  #   pesquisar) caso o termo esteja em branco.
   def pesquisar
     inicializar_pesquisa
 
@@ -39,24 +62,45 @@ class DashboardController < ApplicationController
     pesquisar_por_termo
   end
 
-  # Exibe a página administrativa de gerenciamento.
+  # == Descrição
+  # Exibe a tela de gerenciamento, restrita a administradores.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum.
   #
-  # @return [void]
-  # @side_effect Renderiza a tela com ações de importação do SIGAA, envio de
-  #   solicitações de cadastro e links administrativos.
+  # == Retorno
+  # * Renderiza a view +gerenciamento+.
+  #
+  # == Efeitos Colaterais
+  # * *Redirecionamento*: bloqueia e redireciona (limpando a sessão)
+  #   caso o usuário não esteja autenticado ou não seja administrador
+  #   (via +before_action :verificar_admin+).
   def gerenciamento
   end
 
-  # Envia solicitações de definição de senha para usuários pendentes.
+  # == Descrição
+  # Dispara o envio de e-mails de convite de cadastro para todos os
+  # usuários (docentes e discentes) pendentes de ativação no departamento
+  # do administrador autenticado.
   #
-  # Não recebe argumentos diretamente; usa o departamento do administrador
-  # autenticado para filtrar docentes e discentes pendentes.
+  # == Argumentos
+  # * Nenhum diretamente. Consome +current_user.perfil_adm.departamento_id+.
   #
-  # @return [void]
-  # @side_effect Cria tokens de cadastro, envia e-mails pela Brevo e redireciona
-  #   para +gerenciamento_path+ com flash de sucesso, aviso ou erro parcial.
+  # == Retorno
+  # * Sempre redireciona para +gerenciamento_path+. Possui múltiplos
+  #   caminhos possíveis: departamento não associado, nenhum usuário
+  #   pendente, ou resultado (sucesso total/parcial) do envio dos
+  #   convites.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: leitura dos usuários pendentes; escrita
+  #   (criação de tokens de cadastro) delegada a
+  #   +enviar_convites_pendentes+.
+  # * *Rede*: dispara chamadas HTTP à API da Brevo (via
+  #   +enviar_convites_pendentes+) para cada usuário pendente.
+  # * *Redirecionamento*: sempre redireciona para +gerenciamento_path+
+  #   com uma mensagem flash (sucesso, aviso ou erro) refletindo o
+  #   resultado.
   def enviar_solicitacoes
     depto_id = current_user.perfil_adm&.departamento_id
 
@@ -74,17 +118,30 @@ class DashboardController < ApplicationController
     redirecionar_envio_solicitacoes(resultado[:sucessos], resultado[:erros_envio])
   end
 
-  # Importa e sincroniza dados do SIGAA na base local.
+  # == Descrição
+  # Importa e sincroniza os dados institucionais (matérias, turmas,
+  # docentes e discentes) a partir do arquivo JSON exportado do SIGAA,
+  # criando/atualizando os registros correspondentes e removendo os que
+  # não constam mais no arquivo.
   #
-  # Não recebe argumentos diretamente; lê o arquivo retornado por
-  # #caminho_arquivo_sigaa.
+  # == Argumentos
+  # * Nenhum diretamente. Lê o arquivo indicado por
+  #   +caminho_arquivo_sigaa+ (+db/usuarios_sigaa.json+).
   #
-  # @return [void]
-  # @side_effect Lê JSON, cria ou atualiza matérias, turmas, usuários, perfis e
-  #   participações, remove dados obsoletos e redireciona com flash de sucesso
-  #   ou erro parcial.
-  # @raise [JSON::ParserError] Quando o arquivo de entrada não contém JSON
-  #   válido.
+  # == Retorno
+  # * Sempre redireciona para +gerenciamento_path+. Possui múltiplos
+  #   caminhos possíveis: arquivo não encontrado, ou resultado
+  #   (sucesso total/parcial) da importação.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: cria/atualiza/remove registros de
+  #   Materia, Turma, Usuario, PerfilDocente, PerfilDiscente e
+  #   ParticipacaoTurma, delegado às operações de importação e ao
+  #   método +sincronizar_remocoes_sigaa+.
+  # * *Sistema de Arquivos*: realiza a leitura do arquivo JSON de
+  #   importação.
+  # * *Redirecionamento*: sempre redireciona para +gerenciamento_path+
+  #   com uma mensagem flash refletindo o resultado.
   def importar_dados
     caminho_arquivo = caminho_arquivo_sigaa
     unless File.exist?(caminho_arquivo)
@@ -102,12 +159,24 @@ class DashboardController < ApplicationController
     redirecionar_importacao_sigaa(contexto[:erros_importacao])
   end
 
-  # Retorna sugestões de pesquisa em JSON.
+  # == Descrição
+  # Endpoint utilizado pela barra de busca para retornar, em formato
+  # JSON, sugestões de resultados (turmas, matérias, avaliações,
+  # templates e formulários) de acordo com o termo digitado.
   #
-  # Não recebe argumentos diretamente; usa +params[:q]+ e filtros da requisição.
+  # == Argumentos
+  # * Consome +params[:q]+ (termo pesquisado) e os parâmetros de filtro
+  #   processados por +tipos_selecionados+.
   #
-  # @return [void]
-  # @side_effect Renderiza uma resposta JSON com sugestões ou uma lista vazia.
+  # == Retorno
+  # * Renderiza uma resposta JSON: um array vazio caso o termo esteja em
+  #   branco, ou o array de sugestões retornado por
+  #   +sugestoes_do_termo+.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura.
+  # * *Redirecionamento*: bloqueia e redireciona caso o usuário não
+  #   esteja autenticado (via +before_action+).
   def sugestoes
     termo = params[:q].to_s.strip
     return render json: [] if termo.blank?
@@ -117,10 +186,21 @@ class DashboardController < ApplicationController
 
   private
 
-  # Busca usuários pendentes pertencentes ao departamento informado.
+  # == Descrição
+  # Busca todos os usuários (docentes e discentes) com cadastro
+  # pendente (+status: 0+) vinculados ao departamento informado, seja
+  # por participação em turma (discentes) ou por perfil docente.
   #
-  # @param depto_id [Integer] Identificador do departamento do administrador.
-  # @return [Array<Usuario>] Lista única de docentes e discentes pendentes.
+  # == Argumentos
+  # * +depto_id+ - ID do Departamento cujos usuários pendentes serão
+  #   buscados.
+  #
+  # == Retorno
+  # * Retorna um Array de Usuario (união, sem duplicatas, dos discentes
+  #   e docentes pendentes encontrados).
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura (SELECT).
   def usuarios_pendentes_do_departamento(depto_id)
     turmas_do_departamento_ids = Turma.joins(:materia).where(materias: { departamento_id: depto_id }).ids
     discentes_pendentes = Usuario.joins(:participacoes_turma)
@@ -131,12 +211,22 @@ class DashboardController < ApplicationController
     (discentes_pendentes + docentes_pendentes).uniq
   end
 
-  # Envia convites para uma coleção de usuários pendentes.
+  # == Descrição
+  # Itera sobre a lista de usuários pendentes, disparando o envio do
+  # convite de cadastro para cada um e contabilizando sucessos e erros.
   #
-  # @param usuarios_pendentes [Enumerable<Usuario>] Usuários que devem receber
-  #   link de definição de senha.
-  # @return [Hash] Resultado com chaves +:sucessos+ e +:erros_envio+.
-  # @side_effect Pode criar tokens e enviar e-mails para cada usuário.
+  # == Argumentos
+  # * +usuarios_pendentes+ - Array/Enumerable de Usuario para os quais o
+  #   convite será enviado.
+  #
+  # == Retorno
+  # * Retorna um Hash com as chaves +:sucessos+ (Integer, contagem de
+  #   envios bem-sucedidos) e +:erros_envio+ (Array de String, uma
+  #   mensagem por usuário que falhou).
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)* e *Rede*: delegados a
+  #   +enviar_convite_pendente+, chamado uma vez para cada usuário.
   def enviar_convites_pendentes(usuarios_pendentes)
     resultado = { sucessos: 0, erros_envio: [] }
 
@@ -147,14 +237,28 @@ class DashboardController < ApplicationController
     resultado
   end
 
-  # Envia um convite de cadastro para um usuário pendente.
+  # == Descrição
+  # Gera o token de cadastro e envia o e-mail de convite para um único
+  # usuário, dentro de uma transação que é desfeita (rollback) caso o
+  # envio falhe, evitando tokens "órfãos" no banco.
   #
-  # @param usuario [Usuario] Usuário que receberá o convite.
-  # @param erros_envio [Array<String>] Lista mutável onde erros serão anexados.
-  # @return [Boolean] +true+ quando o e-mail foi enviado; +false+ quando houve
-  #   erro e a transação foi revertida.
-  # @side_effect Cria Token em transação, chama a API de e-mail e pode adicionar
-  #   mensagens em +erros_envio+.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario que receberá o convite.
+  # * +erros_envio+ - Array de String no qual a mensagem de erro será
+  #   adicionada (por referência) caso o envio falhe.
+  #
+  # == Retorno
+  # * Retorna +true+ se o e-mail foi enviado com sucesso, +false+ caso
+  #   contrário.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: cria um registro de Token (via
+  #   +criar_token_cadastro!+); o registro é revertido
+  #   (+ActiveRecord::Rollback+) caso o envio do e-mail falhe.
+  # * *Rede*: dispara uma chamada HTTP à API da Brevo (via
+  #   +enviar_email_convite_admin+, do concern +BrevoEmailable+).
+  # * *Array externo*: adiciona uma mensagem de erro a +erros_envio+ em
+  #   caso de falha.
   def enviar_convite_pendente(usuario, erros_envio)
     enviado = false
 
@@ -174,11 +278,19 @@ class DashboardController < ApplicationController
     enviado
   end
 
-  # Cria um token temporário de cadastro para o usuário.
+  # == Descrição
+  # Gera e persiste um token de cadastro para o usuário informado, com
+  # validade de 10 minutos.
   #
-  # @param usuario [Usuario] Usuário dono do token.
-  # @return [String] Valor do token gerado.
-  # @side_effect Persiste um registro de Token com validade de dez minutos.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario para a qual o token será criado.
+  #
+  # == Retorno
+  # * Retorna uma String com o valor (hexadecimal) do token gerado.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: cria um novo registro de Token
+  #   associado ao usuário (+usuario.tokens.create!+).
   def criar_token_cadastro!(usuario)
     token_gerado = SecureRandom.hex(16)
     usuario.tokens.create!(
@@ -189,16 +301,28 @@ class DashboardController < ApplicationController
     token_gerado
   end
 
-  # Redireciona após o envio de solicitações de cadastro.
+  # == Descrição
+  # Redireciona para a tela de gerenciamento com a mensagem flash
+  # apropriada ao resultado do envio de convites (sucesso total ou
+  # parcial).
   #
-  # @param sucessos [Integer] Quantidade de e-mails enviados com sucesso.
-  # @param erros_envio [Array<String>] Erros coletados durante os envios.
-  # @return [void]
-  # @side_effect Redireciona para +gerenciamento_path+ com flash de sucesso ou
-  #   erro parcial.
+  # == Argumentos
+  # * +sucessos+ - Integer com a quantidade de convites enviados com
+  #   sucesso.
+  # * +erros_envio+ - Array de String com as mensagens de erro dos
+  #   convites que falharam.
+  #
+  # == Retorno
+  # * Retorna o resultado de +redirect_to+. Possui duas mensagens
+  #   possíveis, de acordo com a presença de erros.
+  #
+  # == Efeitos Colaterais
+  # * *Redirecionamento*: redireciona para +gerenciamento_path+ com
+  #   flash de sucesso (sem erros) ou de erro (incluindo
+  #   +error_list+, quando há falhas).
   def redirecionar_envio_solicitacoes(sucessos, erros_envio)
     if erros_envio.empty?
-      redirect_to gerenciamento_path, flash: { success: "Convites enviados com sucesso para os <strong>#{sucessos}</strong> usuários do departamento!" }
+      redirect_to gerenciamento_path, flash: { success: "Convites enviados com sucesso para os <strong>#{sucessos}</strong> usuários pendentes do departamento!" }
     else
       redirect_to gerenciamento_path, flash: {
         error: "O envio foi concluído com instabilidades. Foram enviados #{sucessos} e-mails.",
@@ -207,21 +331,38 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Informa o caminho do arquivo JSON usado como fonte SIGAA.
+  # == Descrição
+  # Retorna o caminho absoluto do arquivo JSON contendo os dados
+  # exportados do SIGAA a serem importados.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum.
   #
-  # @return [Pathname] Caminho para +db/usuarios_sigaa.json+.
+  # == Retorno
+  # * Retorna um +Pathname+ apontando para +db/usuarios_sigaa.json+.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def caminho_arquivo_sigaa
     Rails.root.join("db", "usuarios_sigaa.json")
   end
 
-  # Cria a estrutura de controle usada durante a importação SIGAA.
+  # == Descrição
+  # Constrói a estrutura de acumuladores utilizada ao longo de todo o
+  # fluxo de importação do SIGAA, para rastrear quais registros
+  # permaneceram ativos (e assim não devem ser removidos na etapa de
+  # sincronização) e quais erros ocorreram.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum.
   #
-  # @return [Hash] Hash com listas de matérias, turmas, matrículas ativas e
-  #   erros de importação.
+  # == Retorno
+  # * Retorna um Hash com as chaves +:codigos_materias_ativos+,
+  #   +:turmas_ativas_ids+, +:matriculas_ativas_json+ e
+  #   +:erros_importacao+, todas inicializadas como Arrays vazios.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def contexto_importacao_sigaa
     {
       codigos_materias_ativos: [],
@@ -231,27 +372,47 @@ class DashboardController < ApplicationController
     }
   end
 
-  # Importa todas as matérias presentes no JSON do SIGAA.
+  # == Descrição
+  # Itera sobre a lista de matérias do JSON de importação, delegando a
+  # criação/atualização de cada uma a +importar_materia_sigaa+.
   #
-  # @param dados [Hash] Dados parseados do arquivo SIGAA.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Cria ou atualiza registros de Materia e acumula erros no
-  #   contexto.
+  # == Argumentos
+  # * +dados+ - Hash com os dados completos do JSON de importação
+  #   (utiliza a chave +"materias"+).
+  # * +contexto+ - Hash de acumuladores (ver +contexto_importacao_sigaa+),
+  #   atualizado por referência.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: delegado a +importar_materia_sigaa+,
+  #   chamado uma vez para cada matéria.
   def importar_materias_sigaa(dados, contexto)
     dados["materias"]&.each do |materia_json|
       importar_materia_sigaa(materia_json, contexto)
     end
   end
 
-  # Importa uma matéria individual do SIGAA.
+  # == Descrição
+  # Cria ou atualiza uma Materia a partir dos dados informados,
+  # registrando seu código como ativo no contexto de importação.
   #
-  # @param materia_json [Hash] Dados da matéria, incluindo código, nome e
-  #   departamento.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Persiste Materia, registra o código como ativo e adiciona erro
-  #   ao contexto quando a importação falha.
+  # == Argumentos
+  # * +materia_json+ - Hash com os dados da matéria, contendo (ao menos)
+  #   as chaves +"codigo"+, +"nome"+ e +"departamento_id_temp"+.
+  # * +contexto+ - Hash de acumuladores, atualizado por referência (o
+  #   código da matéria é adicionado a +:codigos_materias_ativos+, e uma
+  #   eventual mensagem de erro é adicionada a +:erros_importacao+).
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: cria/atualiza um registro de Materia
+  #   dentro de uma transação (+materia.save!+). Em caso de exceção, a
+  #   transação é revertida e uma mensagem de erro é registrada em
+  #   +contexto[:erros_importacao]+ (a exceção não é propagada).
   def importar_materia_sigaa(materia_json, contexto)
     codigo = materia_json["codigo"]
 
@@ -266,27 +427,49 @@ class DashboardController < ApplicationController
     contexto[:erros_importacao] << "Matéria #{materia_json['nome']} (Código: #{codigo}): #{e.message}"
   end
 
-  # Importa todas as turmas presentes no JSON do SIGAA.
+  # == Descrição
+  # Itera sobre a lista de turmas do JSON de importação, delegando a
+  # criação/atualização de cada uma a +importar_turma_sigaa+.
   #
-  # @param dados [Hash] Dados parseados do arquivo SIGAA.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Cria ou atualiza registros de Turma e acumula erros no
-  #   contexto.
+  # == Argumentos
+  # * +dados+ - Hash com os dados completos do JSON de importação
+  #   (utiliza a chave +"turmas"+).
+  # * +contexto+ - Hash de acumuladores, atualizado por referência.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: delegado a +importar_turma_sigaa+,
+  #   chamado uma vez para cada turma.
   def importar_turmas_sigaa(dados, contexto)
     dados["turmas"]&.each do |turma_json|
       importar_turma_sigaa(turma_json, contexto)
     end
   end
 
-  # Importa uma turma individual do SIGAA.
+  # == Descrição
+  # Localiza a Materia correspondente e cria/atualiza a Turma a partir
+  # dos dados informados, registrando seu ID como ativo no contexto de
+  # importação.
   #
-  # @param turma_json [Hash] Dados da turma, incluindo número, ano, semestre e
-  #   código da matéria.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Persiste Turma, registra seu ID como ativo e adiciona erro ao
-  #   contexto quando a importação falha.
+  # == Argumentos
+  # * +turma_json+ - Hash com os dados da turma, contendo (ao menos) as
+  #   chaves +"materia_codigo"+, +"numero"+, +"ano"+ e +"semestre"+.
+  # * +contexto+ - Hash de acumuladores, atualizado por referência (o ID
+  #   da turma é adicionado a +:turmas_ativas_ids+, e uma eventual
+  #   mensagem de erro é adicionada a +:erros_importacao+).
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: leitura da Materia (via
+  #   +encontrar_materia_sigaa!+) e escrita da Turma (via
+  #   +salvar_turma_sigaa!+), dentro de uma transação. Em caso de
+  #   exceção (matéria não encontrada ou falha de validação), a
+  #   transação é revertida e uma mensagem de erro é registrada em
+  #   +contexto[:erros_importacao]+ (a exceção não é propagada).
   def importar_turma_sigaa(turma_json, contexto)
     ActiveRecord::Base.transaction do
       materia = encontrar_materia_sigaa!(turma_json["materia_codigo"])
@@ -297,14 +480,22 @@ class DashboardController < ApplicationController
     contexto[:erros_importacao] << "Turma nº #{turma_json['numero']} (#{turma_json['ano']}/#{turma_json['semestre']}) da matéria '#{turma_json['materia_codigo']}': #{e.message}"
   end
 
-  # Cria ou atualiza uma turma a partir dos dados do SIGAA.
+  # == Descrição
+  # Cria ou atualiza o registro de Turma correspondente aos dados
+  # informados e à matéria já localizada.
   #
-  # @param turma_json [Hash] Dados da turma importada.
-  # @param materia [Materia] Matéria associada à turma.
-  # @return [Turma] Turma persistida.
-  # @side_effect Altera ou cria registro de Turma no banco.
-  # @raise [ActiveRecord::RecordInvalid] Quando a turma não passa nas
-  #   validações.
+  # == Argumentos
+  # * +turma_json+ - Hash com os dados da turma, contendo (ao menos) as
+  #   chaves +"numero"+, +"ano"+ e +"semestre"+.
+  # * +materia+ - instância de Materia à qual a turma pertence.
+  #
+  # == Retorno
+  # * Retorna a instância de Turma criada/atualizada e já persistida.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: busca (ou inicializa) e salva
+  #   (+turma.save!+, que pode levantar exceção em caso de falha de
+  #   validação, propagada ao chamador) o registro de Turma.
   def salvar_turma_sigaa!(turma_json, materia)
     turma = Turma.find_or_initialize_by(
       numero: turma_json["numero"],
@@ -316,27 +507,50 @@ class DashboardController < ApplicationController
     turma
   end
 
-  # Importa todos os docentes presentes no JSON do SIGAA.
+  # == Descrição
+  # Itera sobre a lista de docentes do JSON de importação, delegando a
+  # criação/atualização de cada um a +importar_docente_sigaa+.
   #
-  # @param dados [Hash] Dados parseados do arquivo SIGAA.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Cria ou atualiza usuários docentes, perfis docentes e
-  #   participações em turmas.
+  # == Argumentos
+  # * +dados+ - Hash com os dados completos do JSON de importação
+  #   (utiliza a chave +"usuarios_docentes"+).
+  # * +contexto+ - Hash de acumuladores, atualizado por referência.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: delegado a +importar_docente_sigaa+,
+  #   chamado uma vez para cada docente.
   def importar_docentes_sigaa(dados, contexto)
     dados["usuarios_docentes"]&.each do |docente_json|
       importar_docente_sigaa(docente_json, contexto)
     end
   end
 
-  # Importa um docente individual do SIGAA.
+  # == Descrição
+  # Cria/atualiza o Usuario e o PerfilDocente correspondentes a um
+  # docente do JSON de importação, sincronizando suas participações nas
+  # turmas lecionadas (removendo as que não constam mais na lista).
   #
-  # @param docente_json [Hash] Dados do docente, incluindo matrícula, nome,
-  #   e-mail, departamento e turmas lecionadas.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Persiste Usuario, PerfilDocente e ParticipacaoTurma, remove
-  #   participações docentes antigas e registra erros no contexto.
+  # == Argumentos
+  # * +docente_json+ - Hash com os dados do docente, contendo (ao menos)
+  #   as chaves +"matricula"+, +"nome"+, +"email"+,
+  #   +"departamento_id_temp"+ e, opcionalmente, +"turmas_lecionadas"+.
+  # * +contexto+ - Hash de acumuladores, atualizado por referência (a
+  #   matrícula é adicionada a +:matriculas_ativas_json+, e uma
+  #   eventual mensagem de erro é adicionada a +:erros_importacao+).
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: dentro de uma transação, cria/atualiza
+  #   o Usuario e o PerfilDocente, cria as ParticipacaoTurma das turmas
+  #   lecionadas e remove as participações do tipo docente que não
+  #   constam mais na lista. Em caso de exceção, a transação é
+  #   revertida e uma mensagem de erro é registrada em
+  #   +contexto[:erros_importacao]+ (a exceção não é propagada).
   def importar_docente_sigaa(docente_json, contexto)
     matricula = docente_json["matricula"]
 
@@ -351,26 +565,49 @@ class DashboardController < ApplicationController
     contexto[:erros_importacao] << "Docente #{docente_json['nome']} (Matrícula: #{matricula}): #{e.message}"
   end
 
-  # Cria ou atualiza o perfil docente do usuário importado.
+  # == Descrição
+  # Cria ou atualiza o PerfilDocente associado a um usuário importado,
+  # definindo seu departamento.
   #
-  # @param usuario [Usuario] Usuário docente importado.
-  # @param docente_json [Hash] Dados do docente vindos do SIGAA.
-  # @return [void]
-  # @side_effect Persiste PerfilDocente associado ao usuário.
-  # @raise [ActiveRecord::RecordInvalid] Quando o perfil não passa nas
-  #   validações.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario para o qual o perfil será
+  #   criado/atualizado.
+  # * +docente_json+ - Hash com os dados do docente, contendo a chave
+  #   +"departamento_id_temp"+.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador (o valor de
+  #   retorno é o de +perfil.save!+).
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: busca (ou inicializa) e salva
+  #   (+perfil.save!+, que pode levantar exceção em caso de falha de
+  #   validação, propagada ao chamador) o registro de PerfilDocente.
   def salvar_perfil_docente_sigaa!(usuario, docente_json)
     perfil = PerfilDocente.find_or_initialize_by(id: usuario.id)
     perfil.departamento_id = docente_json["departamento_id_temp"]
     perfil.save!
   end
 
-  # Importa as participações docentes nas turmas lecionadas.
+  # == Descrição
+  # Cria as participações em turma (tipo docente) do usuário para cada
+  # turma listada em +"turmas_lecionadas"+, delegando a
+  # +importar_participacao_sigaa!+.
   #
-  # @param usuario [Usuario] Usuário docente importado.
-  # @param docente_json [Hash] Dados do docente com a lista de turmas.
-  # @return [Array<Integer>] IDs das turmas em que o docente permanece ativo.
-  # @side_effect Cria participações docentes no banco.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario (docente) para o qual as
+  #   participações serão criadas.
+  # * +docente_json+ - Hash com os dados do docente, contendo
+  #   (opcionalmente) a chave +"turmas_lecionadas"+.
+  #
+  # == Retorno
+  # * Retorna um Array de Integer com os IDs de todas as turmas
+  #   processadas para o docente.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: delegado a
+  #   +importar_participacao_sigaa!+, chamado uma vez para cada turma
+  #   lecionada.
   def importar_participacoes_docente_sigaa!(usuario, docente_json)
     turmas_docente_ids = []
     (docente_json["turmas_lecionadas"] || []).each do |mat_json|
@@ -379,27 +616,51 @@ class DashboardController < ApplicationController
     turmas_docente_ids
   end
 
-  # Importa todos os discentes presentes no JSON do SIGAA.
+  # == Descrição
+  # Itera sobre a lista de discentes do JSON de importação, delegando a
+  # criação/atualização de cada um a +importar_discente_sigaa+.
   #
-  # @param dados [Hash] Dados parseados do arquivo SIGAA.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Cria ou atualiza usuários discentes, perfis discentes e
-  #   matrículas em turmas.
+  # == Argumentos
+  # * +dados+ - Hash com os dados completos do JSON de importação
+  #   (utiliza a chave +"usuarios_discentes"+).
+  # * +contexto+ - Hash de acumuladores, atualizado por referência.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: delegado a +importar_discente_sigaa+,
+  #   chamado uma vez para cada discente.
   def importar_discentes_sigaa(dados, contexto)
     dados["usuarios_discentes"]&.each do |discente_json|
       importar_discente_sigaa(discente_json, contexto)
     end
   end
 
-  # Importa um discente individual do SIGAA.
+  # == Descrição
+  # Cria/atualiza o Usuario e o PerfilDiscente correspondentes a um
+  # discente do JSON de importação, sincronizando suas participações nas
+  # turmas matriculadas (removendo as que não constam mais na lista).
   #
-  # @param discente_json [Hash] Dados do discente, incluindo matrícula, nome,
-  #   e-mail e turmas matriculadas.
-  # @param contexto [Hash] Estrutura de controle da importação.
-  # @return [void]
-  # @side_effect Persiste Usuario, PerfilDiscente e ParticipacaoTurma, remove
-  #   matrículas antigas e registra erros no contexto.
+  # == Argumentos
+  # * +discente_json+ - Hash com os dados do discente, contendo (ao
+  #   menos) as chaves +"matricula"+, +"nome"+, +"email"+ e
+  #   +"turmas_matriculadas"+.
+  # * +contexto+ - Hash de acumuladores, atualizado por referência (a
+  #   matrícula é adicionada a +:matriculas_ativas_json+, e uma
+  #   eventual mensagem de erro é adicionada a +:erros_importacao+).
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: dentro de uma transação, cria/atualiza
+  #   o Usuario, cria o PerfilDiscente (se ainda não existir), cria as
+  #   ParticipacaoTurma das turmas matriculadas e remove todas as
+  #   participações do usuário que não constam mais na lista. Em caso
+  #   de exceção, a transação é revertida e uma mensagem de erro é
+  #   registrada em +contexto[:erros_importacao]+ (a exceção não é
+  #   propagada).
   def importar_discente_sigaa(discente_json, contexto)
     matricula = discente_json["matricula"]
 
@@ -414,12 +675,25 @@ class DashboardController < ApplicationController
     contexto[:erros_importacao] << "Discente #{discente_json['nome']} (Matrícula: #{matricula}): #{e.message}"
   end
 
-  # Importa as participações discentes nas turmas matriculadas.
+  # == Descrição
+  # Cria as participações em turma (tipo discente) do usuário para cada
+  # turma listada em +"turmas_matriculadas"+, delegando a
+  # +importar_participacao_sigaa!+.
   #
-  # @param usuario [Usuario] Usuário discente importado.
-  # @param discente_json [Hash] Dados do discente com turmas matriculadas.
-  # @return [Array<Integer>] IDs das turmas em que o discente permanece ativo.
-  # @side_effect Cria participações discentes no banco.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario (discente) para o qual as
+  #   participações serão criadas.
+  # * +discente_json+ - Hash com os dados do discente, contendo a chave
+  #   +"turmas_matriculadas"+.
+  #
+  # == Retorno
+  # * Retorna um Array de Integer com os IDs de todas as turmas
+  #   processadas para o discente.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: delegado a
+  #   +importar_participacao_sigaa!+, chamado uma vez para cada turma
+  #   matriculada.
   def importar_participacoes_discente_sigaa!(usuario, discente_json)
     turmas_aluno_ids = []
     discente_json["turmas_matriculadas"].each do |mat_json|
@@ -428,14 +702,25 @@ class DashboardController < ApplicationController
     turmas_aluno_ids
   end
 
-  # Cria ou atualiza um usuário importado do SIGAA.
+  # == Descrição
+  # Cria ou atualiza o registro de Usuario correspondente aos dados
+  # importados, inicializando-o com valores padrão apenas se for um
+  # registro novo (para não sobrescrever status/senha de usuários já
+  # existentes).
   #
-  # @param usuario_json [Hash] Dados do usuário vindos do SIGAA.
-  # @param matricula [String] Matrícula institucional usada como chave.
-  # @return [Usuario] Usuário persistido.
-  # @side_effect Altera ou cria registro de Usuario no banco.
-  # @raise [ActiveRecord::RecordInvalid] Quando o usuário não passa nas
-  #   validações.
+  # == Argumentos
+  # * +usuario_json+ - Hash com os dados do usuário, contendo (ao menos)
+  #   as chaves +"nome"+ e +"email"+.
+  # * +matricula+ - String com a matrícula usada para localizar (ou
+  #   criar) o Usuario.
+  #
+  # == Retorno
+  # * Retorna a instância de Usuario criada/atualizada e já persistida.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: busca (ou inicializa) e salva
+  #   (+usuario.save!+, que pode levantar exceção em caso de falha de
+  #   validação, propagada ao chamador) o registro de Usuario.
   def salvar_usuario_importado_sigaa!(usuario_json, matricula)
     usuario = Usuario.find_or_initialize_by(matricula: matricula)
     usuario.nome = usuario_json["nome"]
@@ -445,11 +730,22 @@ class DashboardController < ApplicationController
     usuario
   end
 
-  # Define estado inicial para usuário recém-importado.
+  # == Descrição
+  # Define os valores padrão (+status+ e +senha+) para um Usuario recém
+  # criado durante a importação, sem afetar usuários já existentes.
   #
-  # @param usuario [Usuario] Usuário novo ou existente.
-  # @return [void]
-  # @side_effect Para usuários novos, define status pendente e senha vazia.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario (ainda não persistida ou já
+  #   existente) a ser eventualmente inicializada.
+  #
+  # == Retorno
+  # * Não possui retorno relevante; interrompe a execução (via +return+)
+  #   caso o usuário não seja um registro novo.
+  #
+  # == Efeitos Colaterais
+  # * Altera os atributos +status+ e +senha+ do objeto +usuario+ em
+  #   memória, apenas quando +usuario.new_record?+ for verdadeiro (a
+  #   gravação no banco ocorre em +salvar_usuario_importado_sigaa!+).
   def inicializar_usuario_importado_sigaa(usuario)
     return unless usuario.new_record?
 
@@ -457,17 +753,30 @@ class DashboardController < ApplicationController
     usuario.senha = ""
   end
 
-  # Importa uma participação de usuário em turma do SIGAA.
+  # == Descrição
+  # Localiza a turma referenciada nos dados informados e cria a
+  # ParticipacaoTurma correspondente para o usuário, registrando o ID
+  # da turma na lista de acumulação.
   #
-  # @param usuario [Usuario] Usuário que será vinculado à turma.
-  # @param mat_json [Hash] Dados da matrícula ou turma lecionada.
-  # @param tipo_participacao [Symbol] Tipo da participação, como +:docente+ ou
-  #   +:discente+.
-  # @param turmas_ids [Array<Integer>] Lista mutável que recebe IDs ativos.
-  # @return [ParticipacaoTurma] Participação encontrada ou criada.
-  # @side_effect Cria ParticipacaoTurma e adiciona o ID da turma em
-  #   +turmas_ids+.
-  # @raise [RuntimeError] Quando a matéria ou turma não é encontrada.
+  # == Argumentos
+  # * +usuario+ - instância de Usuario para o qual a participação será
+  #   criada.
+  # * +mat_json+ - Hash com os dados de identificação da turma (no
+  #   formato aceito por +encontrar_turma_sigaa!+).
+  # * +tipo_participacao+ - Symbol, +:docente+ ou +:discente+, indicando
+  #   o tipo da participação a ser criada.
+  # * +turmas_ids+ - Array de Integer no qual o ID da turma localizada
+  #   será adicionado (por referência).
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador (o valor de
+  #   retorno é o de +ParticipacaoTurma.find_or_create_by!+).
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: leitura da turma (via +encontrar_turma_sigaa!+,
+  #   que pode levantar exceção caso não seja encontrada) e escrita da
+  #   ParticipacaoTurma (via +find_or_create_by!+). *Array externo*:
+  #   adiciona o ID da turma a +turmas_ids+.
   def importar_participacao_sigaa!(usuario, mat_json, tipo_participacao, turmas_ids)
     turma = encontrar_turma_sigaa!(mat_json)
     turmas_ids << turma.id
@@ -478,11 +787,19 @@ class DashboardController < ApplicationController
     )
   end
 
-  # Encontra uma matéria pelo código importado do SIGAA.
+  # == Descrição
+  # Localiza uma Materia pelo código informado, levantando exceção caso
+  # não exista.
   #
-  # @param codigo [String] Código institucional da matéria.
-  # @return [Materia] Matéria encontrada.
-  # @raise [RuntimeError] Quando não existe matéria com o código informado.
+  # == Argumentos
+  # * +codigo+ - String com o código da matéria a ser buscada.
+  #
+  # == Retorno
+  # * Retorna a instância de Materia encontrada.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura. Levanta uma exceção
+  #   (+RuntimeError+, via +raise+) caso a matéria não seja encontrada.
   def encontrar_materia_sigaa!(codigo)
     materia = Materia.find_by(codigo: codigo)
     raise "Matéria com código '#{codigo}' não existe no sistema." if materia.nil?
@@ -490,12 +807,24 @@ class DashboardController < ApplicationController
     materia
   end
 
-  # Encontra uma turma a partir dos dados de matrícula do SIGAA.
+  # == Descrição
+  # Localiza a Turma correspondente aos dados informados, a partir da
+  # matéria, número, ano e semestre, levantando exceção caso não seja
+  # encontrada.
   #
-  # @param mat_json [Hash] Dados com código da matéria, número da turma, ano e
-  #   semestre.
-  # @return [Turma] Turma encontrada.
-  # @raise [RuntimeError] Quando a matéria ou turma não é encontrada.
+  # == Argumentos
+  # * +mat_json+ - Hash com os dados de identificação da turma,
+  #   contendo (ao menos) as chaves +"materia_codigo"+,
+  #   +"numero_turma"+, +"ano"+ e +"semestre"+.
+  #
+  # == Retorno
+  # * Retorna a instância de Turma encontrada.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, incluindo a busca da matéria
+  #   (via +encontrar_materia_sigaa!+, que pode levantar exceção).
+  #   Levanta uma exceção (+RuntimeError+, via +raise+) caso a turma
+  #   não seja encontrada.
   def encontrar_turma_sigaa!(mat_json)
     materia = encontrar_materia_sigaa!(mat_json["materia_codigo"])
     turma = Turma.find_by(
@@ -511,11 +840,26 @@ class DashboardController < ApplicationController
     turma
   end
 
-  # Remove dados locais que não aparecem mais na carga SIGAA atual.
+  # == Descrição
+  # Remove, ao final da importação, os registros de Turma, Materia e
+  # Usuario que não constam mais como ativos no contexto acumulado
+  # durante o processamento do arquivo do SIGAA.
   #
-  # @param contexto [Hash] Estrutura com códigos, IDs e matrículas ativos.
-  # @return [void]
-  # @side_effect Remove turmas, matérias e usuários obsoletos em transação.
+  # == Argumentos
+  # * +contexto+ - Hash de acumuladores (ver
+  #   +contexto_importacao_sigaa+), já preenchido pelas etapas
+  #   anteriores de importação.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: dentro de uma única transação, remove
+  #   (+destroy_all+) todas as Turmas cujo ID não está em
+  #   +contexto[:turmas_ativas_ids]+, todas as Materias cujo código não
+  #   está em +contexto[:codigos_materias_ativos]+, e delega a remoção
+  #   de usuários a +remover_usuarios_importacao_sigaa+. Caso qualquer
+  #   remoção falhe, toda a transação é revertida.
   def sincronizar_remocoes_sigaa(contexto)
     ActiveRecord::Base.transaction do
       Turma.where.not(id: contexto[:turmas_ativas_ids]).destroy_all
@@ -524,13 +868,23 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Remove usuários não administrativos ausentes na importação atual.
+  # == Descrição
+  # Remove os usuários cuja matrícula não consta mais na lista de
+  # matrículas ativas da importação, preservando sempre os usuários
+  # administradores.
   #
-  # @param matriculas_ativas_json [Array<String>] Matrículas presentes no JSON
-  #   importado.
-  # @return [void]
-  # @side_effect Destrói usuários que não estão na lista e não são
-  #   administradores.
+  # == Argumentos
+  # * +matriculas_ativas_json+ - Array de String com as matrículas que
+  #   permaneceram ativas na importação e, portanto, não devem ser
+  #   removidas.
+  #
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados (Escrita)*: remove (+usuario.destroy!+) cada
+  #   Usuario cuja matrícula não está na lista informada, exceto os que
+  #   são administradores (+usuario.administrador?+).
   def remover_usuarios_importacao_sigaa(matriculas_ativas_json)
     Usuario.where.not(matricula: matriculas_ativas_json).each do |usuario|
       next if usuario.administrador?
@@ -539,13 +893,22 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Redireciona ao final da importação SIGAA.
+  # == Descrição
+  # Redireciona para a tela de gerenciamento com a mensagem flash
+  # apropriada ao resultado da importação (sucesso total ou parcial).
   #
-  # @param erros_importacao [Array<String>] Erros coletados durante a
-  #   importação.
-  # @return [void]
-  # @side_effect Redireciona para +gerenciamento_path+ com flash de sucesso ou
-  #   erro parcial.
+  # == Argumentos
+  # * +erros_importacao+ - Array de String com as mensagens de erro
+  #   ocorridas durante a importação.
+  #
+  # == Retorno
+  # * Retorna o resultado de +redirect_to+. Possui duas mensagens
+  #   possíveis, de acordo com a presença de erros.
+  #
+  # == Efeitos Colaterais
+  # * *Redirecionamento*: redireciona para +gerenciamento_path+ com
+  #   flash de sucesso (sem erros) ou de erro (incluindo
+  #   +error_list+, quando há falhas).
   def redirecionar_importacao_sigaa(erros_importacao)
     if erros_importacao.empty?
       redirect_to gerenciamento_path, flash: { success: "Dados do SIGAA importados e sincronizados com sucesso!" }
@@ -554,13 +917,23 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Inicializa variáveis usadas pela busca global.
+  # == Descrição
+  # Inicializa as variáveis de instância utilizadas pela tela de
+  # pesquisa, antes de decidir qual fluxo de busca (por turma ou por
+  # termo) será executado.
   #
-  # Não recebe argumentos diretamente; usa parâmetros da requisição.
+  # == Argumentos
+  # * Consome +params[:q]+ e os parâmetros de filtro processados por
+  #   +tipos_selecionados+.
   #
-  # @return [void]
-  # @side_effect Define +@termo+, coleções vazias e tipos selecionados para a
-  #   view de pesquisa.
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * Popula as variáveis de instância +@termo+, +@avaliacoes+,
+  #   +@templates+, +@formularios+ (inicializadas como relações
+  #   vazias) e +@tipos_selecionados+. Nenhuma alteração no banco de
+  #   dados.
   def inicializar_pesquisa
     @termo = params[:q].to_s.strip
     @avaliacoes = Avaliacao.none
@@ -569,25 +942,45 @@ class DashboardController < ApplicationController
     @tipos_selecionados = tipos_selecionados
   end
 
-  # Pesquisa resultados vinculados a uma turma específica.
+  # == Descrição
+  # Executa a pesquisa restrita a uma turma específica (informada via
+  # +params[:turma_id]+), populando avaliações e, para administradores,
+  # formulários da turma.
   #
-  # Não recebe argumentos diretamente; usa +params[:turma_id]+.
+  # == Argumentos
+  # * Consome +params[:turma_id]+ e +@tipos_selecionados+.
   #
-  # @return [void]
-  # @side_effect Atribui +@avaliacoes+ e, para administradores, +@formularios+.
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +avaliacoes_da_turma+/+formularios_da_turma+. Popula
+  #   +@avaliacoes+ e, se aplicável, +@formularios+.
   def pesquisar_por_turma
     turma_id = params[:turma_id]
     @avaliacoes = avaliacoes_da_turma(turma_id) if tipo_selecionado?("avaliacoes")
     @formularios = formularios_da_turma(turma_id) if administrador_com_tipo?("formularios")
   end
 
-  # Pesquisa resultados textuais pelo termo informado.
+  # == Descrição
+  # Executa a pesquisa por termo livre, populando avaliações para
+  # qualquer usuário e, adicionalmente, templates e formulários para
+  # administradores.
   #
-  # Não recebe argumentos diretamente; usa +@termo+ e os filtros selecionados.
+  # == Argumentos
+  # * Consome +@termo+ (via +padrao_pesquisa+) e +@tipos_selecionados+.
   #
-  # @return [void]
-  # @side_effect Atribui coleções de avaliações, templates e formulários para a
-  #   view conforme permissões e filtros.
+  # == Retorno
+  # * Não possui retorno relevante utilizado pelo chamador; interrompe
+  #   a execução (via +return+) após popular avaliações, caso o
+  #   usuário não seja administrador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +pesquisar_avaliacoes+/+pesquisar_templates+/+pesquisar_formularios+.
+  #   Popula +@avaliacoes+ e, se aplicável, +@templates+ e
+  #   +@formularios+.
   def pesquisar_por_termo
     padrao = padrao_pesquisa
     @avaliacoes = pesquisar_avaliacoes(padrao) if tipo_selecionado?("avaliacoes")
@@ -598,40 +991,75 @@ class DashboardController < ApplicationController
     @formularios = pesquisar_formularios(padrao) if tipo_selecionado?("formularios")
   end
 
-  # Monta o padrão SQL seguro para busca textual.
+  # == Descrição
+  # Monta o padrão utilizado nas cláusulas SQL +LIKE+ a partir do termo
+  # de pesquisa atual, já sanitizado e em minúsculas.
   #
-  # Não recebe argumentos; usa +@termo+.
+  # == Argumentos
+  # * Nenhum diretamente. Utiliza +@termo+.
   #
-  # @return [String] Termo sanitizado envolvido por porcentagens para uso com
-  #   +LIKE+.
+  # == Retorno
+  # * Retorna uma String no formato +"%termo%"+, com o termo sanitizado
+  #   via +ActiveRecord::Base.sanitize_sql_like+.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def padrao_pesquisa
     "%#{ActiveRecord::Base.sanitize_sql_like(@termo.downcase)}%"
   end
 
-  # Verifica se um tipo de resultado está selecionado.
+  # == Descrição
+  # Verifica se um determinado tipo de resultado (ex.: "avaliacoes",
+  # "templates", "formularios") está entre os tipos selecionados pelo
+  # filtro de pesquisa atual.
   #
-  # @param tipo [String] Tipo de resultado, como "avaliacoes", "templates" ou
-  #   "formularios".
-  # @return [Boolean] +true+ quando o tipo está presente em
-  #   +@tipos_selecionados+.
+  # == Argumentos
+  # * +tipo+ - String com o identificador do tipo a ser verificado.
+  #
+  # == Retorno
+  # * Retorna +true+ se o tipo estiver presente em
+  #   +@tipos_selecionados+, +false+ caso contrário.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def tipo_selecionado?(tipo)
     @tipos_selecionados.include?(tipo)
   end
 
-  # Verifica se o usuário é administrador e selecionou um tipo.
+  # == Descrição
+  # Verifica se o usuário atual é administrador e se, ao mesmo tempo, o
+  # tipo informado está selecionado no filtro de pesquisa.
   #
-  # @param tipo [String] Tipo de resultado administrativo.
-  # @return [Boolean] +true+ quando o usuário atual é administrador e o tipo
-  #   está selecionado.
+  # == Argumentos
+  # * +tipo+ - String com o identificador do tipo a ser verificado.
+  #
+  # == Retorno
+  # * Retorna +true+ se +current_user.administrador?+ e o tipo estiver
+  #   selecionado, +false+ caso contrário.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def administrador_com_tipo?(tipo)
     current_user.administrador? && tipo_selecionado?(tipo)
   end
 
-  # Monta todas as sugestões disponíveis para um termo.
+  # == Descrição
+  # Monta a lista completa de sugestões de busca para o termo informado,
+  # combinando sugestões básicas (turmas e matérias), de avaliações e,
+  # quando aplicável, de itens restritos a administradores (templates e
+  # formulários).
   #
-  # @param termo [String] Texto digitado pelo usuário.
-  # @return [Array<Hash>] Lista de sugestões básicas, avaliações e resultados
-  #   administrativos permitidos.
+  # == Argumentos
+  # * +termo+ - String com o termo de pesquisa (não sanitizado).
+  #
+  # == Retorno
+  # * Retorna um Array de Hash, cada um representando uma sugestão
+  #   (com chaves como +:tipo+, +:titulo+, +:subtitulo+ e +:url+,
+  #   variáveis conforme o tipo de sugestão).
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada aos métodos de
+  #   sugestão individuais.
   def sugestoes_do_termo(termo)
     tipos = tipos_selecionados
     padrao = "%#{ActiveRecord::Base.sanitize_sql_like(termo.downcase)}%"
@@ -641,21 +1069,46 @@ class DashboardController < ApplicationController
       sugestoes_administrador(padrao, tipos)
   end
 
-  # Monta sugestões básicas de turmas e matérias.
+  # == Descrição
+  # Combina as sugestões de turmas e de matérias, disponíveis para
+  # qualquer usuário autenticado.
   #
-  # @param termo [String] Texto original digitado pelo usuário.
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Sugestões de turmas e matérias.
+  # == Argumentos
+  # * +termo+ - String com o termo de pesquisa (não sanitizado, usado
+  #   para a busca de turmas).
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada (usada
+  #   para a busca de matérias).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados (repassado para compor as URLs das sugestões).
+  #
+  # == Retorno
+  # * Retorna um Array de Hash com as sugestões de turmas seguidas das
+  #   sugestões de matérias.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +sugestoes_turmas+/+sugestoes_materias+.
   def sugestoes_basicas(termo, padrao, tipos)
     sugestoes_turmas(termo, tipos) + sugestoes_materias(padrao, tipos)
   end
 
-  # Monta sugestões de turmas compatíveis com o termo.
+  # == Descrição
+  # Busca até 3 turmas correspondentes ao termo informado e as
+  # transforma em sugestões formatadas para exibição.
   #
-  # @param termo [String] Texto original digitado pelo usuário.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Até três sugestões de turmas.
+  # == Argumentos
+  # * +termo+ - String com o termo de pesquisa (repassado a
+  #   +pesquisar_turmas+).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados (repassado para compor a URL de cada sugestão).
+  #
+  # == Retorno
+  # * Retorna um Array de Hash (tipo "Turma"), cada um contendo
+  #   +:tipo+, +:titulo+, +:subtitulo+, +:materia_codigo+,
+  #   +:turma_codigo+ e +:url+.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a +pesquisar_turmas+.
   def sugestoes_turmas(termo, tipos)
     pesquisar_turmas(termo).limit(3).map do |turma|
       {
@@ -669,11 +1122,22 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Monta sugestões de matérias compatíveis com o padrão de busca.
+  # == Descrição
+  # Busca até 3 matérias correspondentes ao padrão informado e as
+  # transforma em sugestões formatadas para exibição.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Até três sugestões de matérias.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada
+  #   (repassada a +pesquisar_materias+).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados (repassado para compor a URL de cada sugestão).
+  #
+  # == Retorno
+  # * Retorna um Array de Hash (tipo "Matéria"), cada um contendo
+  #   +:tipo+, +:titulo+, +:subtitulo+, +:materia_codigo+ e +:url+.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a +pesquisar_materias+.
   def sugestoes_materias(padrao, tipos)
     pesquisar_materias(padrao).limit(3).map do |materia|
       {
@@ -686,12 +1150,24 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Monta sugestões de avaliações pendentes.
+  # == Descrição
+  # Busca até 5 avaliações correspondentes ao padrão informado, caso o
+  # tipo "avaliacoes" esteja selecionado, e as transforma em sugestões
+  # formatadas para exibição.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Sugestões de avaliações ou lista vazia quando o tipo
-  #   não está selecionado.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada
+  #   (repassada a +pesquisar_avaliacoes+).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados.
+  #
+  # == Retorno
+  # * Retorna um Array de Hash (tipo "Avaliação"), ou um Array vazio
+  #   caso "avaliacoes" não esteja entre os tipos selecionados.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +pesquisar_avaliacoes+.
   def sugestoes_avaliacoes(padrao, tipos)
     return [] unless tipos.include?("avaliacoes")
 
@@ -700,10 +1176,22 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Monta o hash de sugestão para uma avaliação.
+  # == Descrição
+  # Monta o Hash de sugestão formatado para uma única avaliação.
   #
-  # @param avaliacao [Avaliacao] Avaliação pendente que será sugerida.
-  # @return [Hash] Dados exibidos no autocomplete da pesquisa.
+  # == Argumentos
+  # * +avaliacao+ - instância de Avaliacao a ser formatada como
+  #   sugestão.
+  #
+  # == Retorno
+  # * Retorna um Hash com +:tipo+, +:titulo+, +:subtitulo+,
+  #   +:materia_codigo+, +:turma_codigo+ e +:url+.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura (navegação pelas associações
+  #   +formulario+, +turma+, +materia+ e +template+ da avaliação, que
+  #   pode disparar consultas adicionais caso não estejam
+  #   pré-carregadas).
   def sugestao_avaliacao(avaliacao)
     turma = avaliacao.formulario.turma
 
@@ -717,24 +1205,49 @@ class DashboardController < ApplicationController
     }
   end
 
-  # Monta sugestões visíveis apenas para administradores.
+  # == Descrição
+  # Combina as sugestões restritas a administradores (templates e
+  # formulários), retornando uma lista vazia para usuários comuns.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Sugestões de templates e formulários ou lista vazia
-  #   para usuários não administradores.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada
+  #   (repassada aos métodos de sugestão).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados.
+  #
+  # == Retorno
+  # * Retorna um Array de Hash com as sugestões de templates seguidas
+  #   das sugestões de formulários, ou um Array vazio caso
+  #   +current_user+ não seja administrador.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +sugestoes_templates+/+sugestoes_formularios+.
   def sugestoes_administrador(padrao, tipos)
     return [] unless current_user.administrador?
 
     sugestoes_templates(padrao, tipos) + sugestoes_formularios(padrao, tipos)
   end
 
-  # Monta sugestões de templates.
+  # == Descrição
+  # Busca até 5 templates correspondentes ao padrão informado, caso o
+  # tipo "templates" esteja selecionado, e os transforma em sugestões
+  # formatadas para exibição.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Sugestões de templates ou lista vazia quando o tipo
-  #   não está selecionado.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada
+  #   (repassada a +pesquisar_templates+).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados.
+  #
+  # == Retorno
+  # * Retorna um Array de Hash (tipo "Template"), ou um Array vazio
+  #   caso "templates" não esteja entre os tipos selecionados.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +pesquisar_templates+ (que já aplica a política de acesso via
+  #   +policy_scope+).
   def sugestoes_templates(padrao, tipos)
     return [] unless tipos.include?("templates")
 
@@ -748,12 +1261,25 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Monta sugestões de formulários.
+  # == Descrição
+  # Busca até 5 formulários correspondentes ao padrão informado, caso o
+  # tipo "formularios" esteja selecionado, e os transforma em sugestões
+  # formatadas para exibição.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @param tipos [Array<String>] Tipos de resultado selecionados.
-  # @return [Array<Hash>] Sugestões de formulários ou lista vazia quando o tipo
-  #   não está selecionado.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada
+  #   (repassada a +pesquisar_formularios+).
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados.
+  #
+  # == Retorno
+  # * Retorna um Array de Hash (tipo "Formulário"), ou um Array vazio
+  #   caso "formularios" não esteja entre os tipos selecionados.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, delegada a
+  #   +pesquisar_formularios+ (restrita ao departamento do
+  #   administrador atual).
   def sugestoes_formularios(padrao, tipos)
     return [] unless tipos.include?("formularios")
 
@@ -769,16 +1295,27 @@ class DashboardController < ApplicationController
     end
   end
 
-  # Define os tipos de resultado selecionados na busca.
+  # Sem o filtro aberto, assume as 3 categorias. Com o filtro aberto, usa
+  # exatamente o que está marcado. "sem_templates" força a exclusão mesmo
+  # que "templates" venha marcado por algum motivo (defesa, não deveria
+  # acontecer já que o checkbox fica desabilitado nesse caso).
   #
-  # Não recebe argumentos diretamente; usa +params[:filtro_ativo]+,
-  # +params[:tipos]+ e +params[:sem_templates]+.
+  # == Descrição
+  # Determina, a partir dos parâmetros da requisição, quais tipos de
+  # resultado (avaliações, templates, formulários) devem ser
+  # considerados na pesquisa ou nas sugestões atuais.
   #
-  # Sem o filtro aberto, assume as três categorias. Com o filtro aberto, usa
-  # exatamente o que está marcado. +sem_templates+ força a exclusão mesmo que
-  # "templates" venha marcado por algum motivo.
+  # == Argumentos
+  # * Nenhum diretamente. Utiliza +params[:filtro_ativo]+,
+  #   +params[:tipos]+ e +params[:sem_templates]+.
   #
-  # @return [Array<String>] Tipos selecionados para pesquisa e sugestões.
+  # == Retorno
+  # * Retorna um Array de String com os tipos selecionados (ex.:
+  #   +%w[avaliacoes templates formularios]+, ou um subconjunto,
+  #   possivelmente sem "templates").
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def tipos_selecionados
     tipos = if params[:filtro_ativo].present?
               Array(params[:tipos])
@@ -790,13 +1327,20 @@ class DashboardController < ApplicationController
     tipos
   end
 
-  # Garante que exista usuário autenticado.
+  # == Descrição
+  # before_action que garante que apenas usuários autenticados possam
+  # acessar as actions de índice, pesquisa e sugestões.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum diretamente. Utiliza +current_user+.
   #
-  # @return [void]
-  # @side_effect Redireciona para a página inicial com flash de erro quando não
-  #   há usuário logado.
+  # == Retorno
+  # * Não possui retorno relevante (callback de before_action).
+  #
+  # == Efeitos Colaterais
+  # * *Redirecionamento*: caso não haja usuário autenticado, redireciona
+  #   para a página inicial com flash de erro, impedindo o
+  #   processamento da action solicitada.
   def verificar_usuario
     return if current_user.present?
 
@@ -804,12 +1348,22 @@ class DashboardController < ApplicationController
       flash: { error: "Acesso restrito. Por favor, faça login para continuar." }
   end
 
-  # Busca avaliações pendentes do usuário atual.
+  # == Descrição
+  # Monta a consulta base das avaliações pendentes do usuário
+  # autenticado, com as associações necessárias pré-carregadas,
+  # ordenadas da mais recente para a mais antiga.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum diretamente. Utiliza +current_user.id+.
   #
-  # @return [ActiveRecord::Relation<Avaliacao>] Relação de avaliações pendentes
-  #   ordenadas da mais recente para a mais antiga.
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Avaliacao (ainda não
+  #   executado), podendo ser encadeado com filtros adicionais pelos
+  #   métodos chamadores.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy quando
+  #   a relação for de fato utilizada.
   def avaliacoes_do_usuario
     Avaliacao
       .pendentes
@@ -819,21 +1373,40 @@ class DashboardController < ApplicationController
       .order(created_at: :desc)
   end
 
-  # Busca avaliações pendentes do usuário para uma turma.
+  # == Descrição
+  # Filtra as avaliações pendentes do usuário restritas a uma turma
+  # específica.
   #
-  # @param turma_id [Integer, String] Identificador da turma filtrada.
-  # @return [ActiveRecord::Relation<Avaliacao>] Relação de avaliações da turma.
+  # == Argumentos
+  # * +turma_id+ - ID da Turma pela qual as avaliações serão filtradas.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Avaliacao, filtrado pela
+  #   turma informada.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy.
   def avaliacoes_da_turma(turma_id)
     avaliacoes_do_usuario
       .joins(:formulario)
       .where(formularios: { turma_id: turma_id })
   end
 
-  # Busca formulários de uma turma no departamento do administrador.
+  # == Descrição
+  # Busca os formulários mais recentes de uma turma específica dentro do
+  # departamento do administrador autenticado.
   #
-  # @param turma_id [Integer, String] Identificador da turma filtrada.
-  # @return [ActiveRecord::Relation<Formulario>] Relação de formulários
-  #   recentes da turma.
+  # == Argumentos
+  # * +turma_id+ - ID da Turma pela qual os formulários serão
+  #   filtrados.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Formulario, restrito ao
+  #   departamento do administrador atual e à turma informada.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy.
+  #   Consome +current_administrador.departamento+.
   def formularios_da_turma(turma_id)
     Formulario
       .do_departamento(current_administrador.departamento)
@@ -842,11 +1415,19 @@ class DashboardController < ApplicationController
       .recentes
   end
 
-  # Pesquisa avaliações pendentes por título, matéria ou código.
+  # == Descrição
+  # Filtra as avaliações pendentes do usuário cujo título do template,
+  # nome ou código da matéria correspondam ao padrão de pesquisa.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @return [ActiveRecord::Relation<Avaliacao>] Avaliações compatíveis com o
-  #   padrão.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Avaliacao filtrado pelo
+  #   padrão informado.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy.
   def pesquisar_avaliacoes(padrao)
     avaliacoes_do_usuario
       .joins(formulario: [ :template, { turma: :materia } ])
@@ -856,11 +1437,21 @@ class DashboardController < ApplicationController
       )
   end
 
-  # Pesquisa templates pelo título ou descrição.
+  # == Descrição
+  # Busca os templates (restritos pela política de acesso do usuário
+  # atual) cujo título ou descrição correspondam ao padrão de pesquisa.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @return [ActiveRecord::Relation<Template>] Templates permitidos pela policy
-  #   e compatíveis com o padrão.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Template, filtrado e
+  #   ordenado pelos mais recentes.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy. Aplica
+  #   +policy_scope(Template)+, que pode disparar verificações de
+  #   autorização.
   def pesquisar_templates(padrao)
     policy_scope(Template)
       .where(
@@ -871,11 +1462,21 @@ class DashboardController < ApplicationController
       .recentes
   end
 
-  # Pesquisa formulários por template, matéria ou código.
+  # == Descrição
+  # Busca os formulários do departamento do administrador atual cujo
+  # título do template, nome ou código da matéria correspondam ao
+  # padrão de pesquisa.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @return [ActiveRecord::Relation<Formulario>] Formulários do departamento do
-  #   administrador compatíveis com o padrão.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Formulario, filtrado e
+  #   ordenado pelos mais recentes.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy.
+  #   Consome +current_administrador.departamento+.
   def pesquisar_formularios(padrao)
     Formulario
       .do_departamento(current_administrador.departamento)
@@ -888,11 +1489,19 @@ class DashboardController < ApplicationController
       .recentes
   end
 
-  # Pesquisa matérias por nome ou código.
+  # == Descrição
+  # Busca as matérias cujo nome ou código correspondam ao padrão de
+  # pesquisa, ordenadas por nome.
   #
-  # @param padrao [String] Padrão sanitizado para consultas com +LIKE+.
-  # @return [ActiveRecord::Relation<Materia>] Matérias compatíveis ordenadas por
-  #   nome.
+  # == Argumentos
+  # * +padrao+ - String já no formato +"%termo%"+, sanitizada.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Materia, filtrado e
+  #   ordenado por nome.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy.
   def pesquisar_materias(padrao)
     Materia.where(
       "LOWER(nome) LIKE :padrao OR LOWER(codigo) LIKE :padrao",
@@ -900,12 +1509,27 @@ class DashboardController < ApplicationController
     ).order(:nome)
   end
 
-  # Pesquisa turmas quando o termo contém matéria e identificador da turma.
+  # Espera o último "token" do termo como identificador de turma (letra ou
+  # número) e o restante como nome/código da matéria. Ex.: "CIC0001 A",
+  # "Estruturas de Dados 1".
   #
-  # @param termo [String] Texto com nome/código da matéria e turma, como
-  #   "CIC0001 A" ou "Estruturas de Dados 1".
-  # @return [ActiveRecord::Relation<Turma>] Turmas compatíveis ou relação vazia
-  #   quando o termo não segue o formato esperado.
+  # == Descrição
+  # Interpreta o termo de pesquisa como "<matéria> <identificador da
+  # turma>" e busca as turmas correspondentes, combinando o número da
+  # turma com o nome/código da matéria.
+  #
+  # == Argumentos
+  # * +termo+ - String com o termo de pesquisa completo, não
+  #   sanitizado.
+  #
+  # == Retorno
+  # * Retorna um +ActiveRecord::Relation+ de Turma correspondente ao
+  #   padrão interpretado, ou +Turma.none+ caso o termo não corresponda
+  #   ao formato esperado (regex) ou o nome da matéria extraído esteja
+  #   em branco.
+  #
+  # == Efeitos Colaterais
+  # * *Banco de Dados*: apenas leitura, executada de forma lazy.
   def pesquisar_turmas(termo)
     match = termo.match(/\A(.+?)\s+([A-Za-z]|\d{1,2})\z/)
     return Turma.none unless match
@@ -927,15 +1551,28 @@ class DashboardController < ApplicationController
       .order(:numero)
   end
 
-  # Monta URL de pesquisa para sugestão de matéria.
+  # Matéria/turma não têm relação com templates, então qualquer navegação
+  # a partir dessas sugestões já remove "templates" da lista de tipos e
+  # marca sem_templates=1, para a topbar desabilitar esse checkbox.
   #
-  # @param materia [Materia] Matéria selecionada na sugestão.
-  # @param tipos [Array<String>] Tipos selecionados antes da navegação.
-  # @return [String] URL para a página de pesquisa com templates excluídos.
+  # == Descrição
+  # Monta a URL de pesquisa a ser usada quando o usuário clica na
+  # sugestão de uma matéria, ajustando os tipos de resultado para
+  # excluir "templates".
   #
-  # Matéria não tem relação com templates, então a navegação remove "templates"
-  # da lista de tipos e marca +sem_templates=1+ para a topbar desabilitar esse
-  # checkbox.
+  # == Argumentos
+  # * +materia+ - instância de Materia cujo nome será usado como termo
+  #   de pesquisa na URL gerada.
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados.
+  #
+  # == Retorno
+  # * Retorna uma String com a URL gerada por +pesquisa_path+, já com
+  #   +filtro_ativo+, +tipos+ (sem "templates") e +sem_templates+
+  #   definidos.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def materia_suggestion_url(materia, tipos)
     tipos_aplicaveis = tipos - [ "templates" ]
     tipos_aplicaveis = %w[avaliacoes formularios] if tipos_aplicaveis.empty?
@@ -943,12 +1580,24 @@ class DashboardController < ApplicationController
     pesquisa_path(q: materia.nome, filtro_ativo: "1", tipos: tipos_aplicaveis, sem_templates: "1")
   end
 
-  # Monta URL de pesquisa para sugestão de turma.
+  # == Descrição
+  # Monta a URL de pesquisa a ser usada quando o usuário clica na
+  # sugestão de uma turma, ajustando os tipos de resultado para excluir
+  # "templates" e restringindo o resultado à turma selecionada.
   #
-  # @param turma [Turma] Turma selecionada na sugestão.
-  # @param tipos [Array<String>] Tipos selecionados antes da navegação.
-  # @return [String] URL para a página de pesquisa filtrada pela turma, com
-  #   templates excluídos.
+  # == Argumentos
+  # * +turma+ - instância de Turma cujo nome de exibição será usado
+  #   como termo de pesquisa e cujo ID será incluído na URL gerada.
+  # * +tipos+ - Array de String com os tipos de resultado atualmente
+  #   selecionados.
+  #
+  # == Retorno
+  # * Retorna uma String com a URL gerada por +pesquisa_path+, já com
+  #   +filtro_ativo+, +tipos+ (sem "templates"), +sem_templates+ e
+  #   +turma_id+ definidos.
+  #
+  # == Efeitos Colaterais
+  # * Nenhum.
   def turma_suggestion_url(turma, tipos)
     tipos_aplicaveis = tipos - [ "templates" ]
     tipos_aplicaveis = %w[avaliacoes formularios] if tipos_aplicaveis.empty?
@@ -962,13 +1611,24 @@ class DashboardController < ApplicationController
     )
   end
 
-  # Garante que o usuário atual seja administrador.
+  # == Descrição
+  # before_action que garante que apenas usuários autenticados e com
+  # perfil de administrador possam acessar as actions de gerenciamento,
+  # importação de dados e envio de solicitações.
   #
-  # Não recebe argumentos.
+  # == Argumentos
+  # * Nenhum diretamente. Utiliza +current_user+.
   #
-  # @return [void]
-  # @side_effect Limpa a sessão, remove o cache de usuário atual e redireciona
-  #   para a página inicial quando o usuário não é administrador.
+  # == Retorno
+  # * Não possui retorno relevante (callback de before_action).
+  #
+  # == Efeitos Colaterais
+  # * *Sessão*: caso o usuário não esteja autenticado ou não seja
+  #   administrador, limpa a sessão (+session.clear+) e zera
+  #   +@current_user+.
+  # * *Redirecionamento*: nesses mesmos casos, redireciona para a
+  #   página inicial com flash de erro, impedindo o processamento da
+  #   action solicitada.
   def verificar_admin
     if current_user.nil? || !current_user.administrador?
       session.clear
