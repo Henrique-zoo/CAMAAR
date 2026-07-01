@@ -35,9 +35,9 @@ end
 # -------------------------------------------------------
 
 # == Descrição
-# Prepara o banco de dados com toda a hierarquia necessária (matéria, turma, template e formulário) 
+# Prepara o banco de dados com toda a hierarquia necessária (matéria, turma, template e formulário)
 # e simula um aluno que já respondeu a este formulário com uma questão discursiva.
-Dado('que existe um formulário com respostas para a turma {string}') do |nome_turma|
+Given('que existe um formulário com respostas para a turma {string}') do |nome_turma|
   materia = Materia.find_or_create_by!(nome: nome_turma, departamento: departamento_csv) { |m| m.codigo = "COD#{rand(1000)}" }
   @turma = Turma.find_or_create_by!(materia: materia, ano: 2026, semestre: :primeiro) { |t| t.numero = 1 }
 
@@ -57,6 +57,8 @@ Dado('que existe um formulário com respostas para a turma {string}') do |nome_t
     publico_alvo: :discentes,
     template: template
   )
+  copiar_questoes_do_template_para_formulario(@formulario, template)
+  @questao = @formulario.questoes.find_by!(enunciado: @questao.enunciado)
 
   aluno = Usuario.create!(
     nome: "João Respondedor",
@@ -79,25 +81,25 @@ end
 
 # == Descrição
 # Simula a navegação inicial do administrador para o painel de relatórios do departamento.
-Quando('eu acesso a página de relatórios do meu departamento') do
+When('eu acesso a página de relatórios do meu departamento') do
 end
 
 # == Descrição
 # Aciona a rota que faz o download do CSV para o formulário previamente criado.
-Quando('solicito a exportação do formulário da turma {string}') do |_nome_turma|
+When('solicito a exportação do formulário da turma {string}') do |_nome_turma|
   visit exportar_csv_formulario_path(@formulario)
 end
 
 # == Descrição
 # Inspeciona os cabeçalhos da resposta HTTP para garantir que o navegador recebeu a instrução de baixar um anexo do tipo CSV.
-Então('o download do arquivo CSV deve ser iniciado') do
+Then('o download do arquivo CSV deve ser iniciado') do
   expect(page.response_headers["Content-Type"]).to include "text/csv"
   expect(page.response_headers["Content-Disposition"]).to include "attachment"
 end
 
 # == Descrição
 # Faz a leitura do corpo do arquivo baixado e verifica se o nome do aluno, a pergunta e a resposta constam no texto.
-Então('o CSV deve conter os dados esperados das avaliações') do
+Then('o CSV deve conter os dados esperados das avaliações') do
   expect(page.body).to include("João Respondedor")
   expect(page.body).to include("Avalie o professor")
   expect(page.body).to include("Ótima aula!")
@@ -109,7 +111,7 @@ end
 
 # == Descrição
 # Configura o banco de dados com um formulário ativo, porém sem simular nenhuma submissão de respostas por alunos.
-Dado('que existe um formulário sem respostas para a turma {string} do meu departamento') do |nome_turma|
+Given('que existe um formulário sem respostas para a turma {string} do meu departamento') do |nome_turma|
   materia = Materia.find_or_create_by!(nome: nome_turma, departamento: departamento_csv) { |m| m.codigo = "COD#{rand(1000)}" }
   @turma = Turma.find_or_create_by!(materia: materia, ano: 2026, semestre: :primeiro) { |t| t.numero = 1 }
 
@@ -129,17 +131,19 @@ Dado('que existe um formulário sem respostas para a turma {string} do meu depar
     publico_alvo: :discentes,
     template: template
   )
+  copiar_questoes_do_template_para_formulario(@formulario_vazio, template)
+  @questao = @formulario_vazio.questoes.find_by!(enunciado: @questao.enunciado)
 end
 
 # == Descrição
 # Acessa o endpoint de geração de relatório para o formulário vazio configurado no cenário.
-Quando('eu solicito a exportação do formulário da turma {string}') do |_nome_turma|
+When('eu solicito a exportação do formulário da turma {string}') do |_nome_turma|
   visit exportar_csv_formulario_path(@formulario_vazio)
 end
 
 # == Descrição
 # Garante que o arquivo gerado contenha estritamente uma única linha correspondente ao cabeçalho das colunas.
-Então('o arquivo CSV deve conter apenas a linha de cabeçalho') do
+Then('o arquivo CSV deve conter apenas a linha de cabeçalho') do
   linhas = page.body.split("\n")
   expect(linhas.size).to eq(1)
   expect(linhas.first).to include("Aluno;Matrícula;Avalie a infraestrutura")
@@ -151,7 +155,7 @@ end
 
 # == Descrição
 # Cria o contexto de um formulário válido e simula a requisição direta na rota de exportação por um usuário sem privilégios.
-Quando('eu tento acessar a rota de exportação de resultados em CSV') do
+When('eu tento acessar a rota de exportação de resultados em CSV') do
   depto = Departamento.find_or_create_by!(nome: "Departamento Teste")
   materia = Materia.find_or_create_by!(nome: "Matéria", departamento: depto) { |m| m.codigo = "MAT001" }
   turma = Turma.find_or_create_by!(materia: materia, ano: 2026, semestre: :primeiro) { |t| t.numero = 1 }
@@ -174,12 +178,13 @@ Quando('eu tento acessar a rota de exportação de resultados em CSV') do
   )
 
   form = Formulario.create!(adm: perf, turma: turma, publico_alvo: :discentes, template: template)
+  copiar_questoes_do_template_para_formulario(form, template)
 
   visit exportar_csv_formulario_path(form)
 end
 
 # == Descrição
 # Confirma se o Controller barrou o acesso e exibiu o alerta correto na tela, cumprindo as exigências de segurança.
-Então('devo ver uma mensagem informando que apenas administradores possuem acesso a este recurso') do
+Then('devo ver uma mensagem informando que apenas administradores possuem acesso a este recurso') do
   expect(page).to have_content("Apenas administradores possuem acesso a este recurso")
 end

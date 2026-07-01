@@ -263,13 +263,7 @@ Then(
 ) do |mensagem|
   mensagem = mensagem.delete_suffix(".")
 
-  if mensagem.start_with?("o template") ||
-      mensagem.start_with?("não tenho permissão para") ||
-      mensagem == "o título do template é obrigatório"
-    expect(estado[:mensagens]).to include(mensagem)
-  else
-    pendente_por_app_incompleto!(mensagem)
-  end
+  expect(estado[:mensagens]).to include(mensagem)
 end
 
 Then(/^devo ver o template "([^"]+)"$/) do |titulo|

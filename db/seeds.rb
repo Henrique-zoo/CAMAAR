@@ -320,7 +320,7 @@ def criar_formulario_seed!(formulario_json)
 
   Formularios::CreateFromTemplate.call(
     template_id: template.id,
-    turma_ids: [turma.id],
+    turma_ids: [ turma.id ],
     publico_alvo: formulario_json.fetch('publico_alvo'),
     perfil_adm: adm
   )

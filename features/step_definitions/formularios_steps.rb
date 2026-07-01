@@ -6,7 +6,7 @@ def administrador_formularios
   @admin
 end
 
-Dado("que existem formulários criados para o semestre atual") do
+Given("que existem formulários criados para o semestre atual") do
   administrador_formularios
   @template = criar_template_com_questoes(titulo: "Avaliação de Disciplina")
   @turma_a = criar_turma_do_nome_exibicao("Estrutura de Dados - Turma A")
@@ -17,7 +17,7 @@ Dado("que existem formulários criados para o semestre atual") do
   ]
 end
 
-Dado("que nenhum formulário foi gerado para o semestre vigente") do
+Given("que nenhum formulário foi gerado para o semestre vigente") do
   administrador_formularios
   turma_passada = criar_turma_do_nome_exibicao(
     "Disciplina Anterior - Turma A",
@@ -28,12 +28,12 @@ Dado("que nenhum formulário foi gerado para o semestre vigente") do
   expect(Formulario.do_semestre_atual.count).to eq(0)
 end
 
-Dado("que existe um template cadastrado chamado {string}") do |titulo|
+Given("que existe um template cadastrado chamado {string}") do |titulo|
   administrador_formularios
   @template = criar_template_com_questoes(titulo: titulo)
 end
 
-Dado("que existe um template sem questões chamado {string}") do |titulo|
+Given("que existe um template sem questões chamado {string}") do |titulo|
   administrador_formularios
   @template_vazio = Template.new(
     adm: @admin.perfil_adm,
@@ -44,12 +44,12 @@ Dado("que existe um template sem questões chamado {string}") do |titulo|
   @template_vazio.save!(validate: false)
 end
 
-Dado("que existem as turmas {string} e {string} cadastradas no semestre atual") do |nome_turma_a, nome_turma_b|
+Given("que existem as turmas {string} e {string} cadastradas no semestre atual") do |nome_turma_a, nome_turma_b|
   @turma_a = criar_turma_do_nome_exibicao(nome_turma_a)
   @turma_b = criar_turma_do_nome_exibicao(nome_turma_b)
 end
 
-Dado("que existe o professor {string} vinculado à turma {string}") do |nome_professor, nome_turma|
+Given("que existe o professor {string} vinculado à turma {string}") do |nome_professor, nome_turma|
   turma = turma_por_referencia(nome_turma)
   professor = usuario_docente(
     nome: nome_professor,
@@ -64,7 +64,7 @@ Dado("que existe o professor {string} vinculado à turma {string}") do |nome_pro
   )
 end
 
-Dado("que existe o professor {string} no meu departamento") do |nome_professor|
+Given("que existe o professor {string} no meu departamento") do |nome_professor|
   administrador_formularios
   usuario_docente(
     nome: nome_professor,
@@ -73,12 +73,12 @@ Dado("que existe o professor {string} no meu departamento") do |nome_professor|
   )
 end
 
-Dado("que existe uma turma de outro departamento chamada {string}") do |nome_turma|
+Given("que existe uma turma de outro departamento chamada {string}") do |nome_turma|
   outro_departamento = Departamento.create!(nome: "Outro Departamento #{SecureRandom.hex(2)}")
   @turma_outro_departamento = criar_turma_do_nome_exibicao(nome_turma, departamento: outro_departamento)
 end
 
-Dado("que existe uma turma passada chamada {string}") do |nome_turma|
+Given("que existe uma turma passada chamada {string}") do |nome_turma|
   @turma_passada = criar_turma_do_nome_exibicao(
     nome_turma,
     ano: Date.current.year - 1,
@@ -86,7 +86,7 @@ Dado("que existe uma turma passada chamada {string}") do |nome_turma|
   )
 end
 
-Dado("que existe um formulário já publicado para a turma {string} com público-alvo {string}") do |nome_turma, publico_alvo|
+Given("que existe um formulário já publicado para a turma {string} com público-alvo {string}") do |nome_turma, publico_alvo|
   turma = turma_por_referencia(nome_turma)
   @formulario_existente = Formularios::CreateFromTemplate.call(
     template_id: @template.id,
@@ -96,7 +96,7 @@ Dado("que existe um formulário já publicado para a turma {string} com público
   ).sole
 end
 
-Dado("que existe um formulário criado por outro administrador do meu departamento") do
+Given("que existe um formulário criado por outro administrador do meu departamento") do
   administrador_formularios
   outro_admin = criar_outro_administrador_formularios(@departamento)
   template = template_formulario_para_admin("Avaliação de Outro Administrador", outro_admin)
@@ -104,7 +104,7 @@ Dado("que existe um formulário criado por outro administrador do meu departamen
   @formulario_outro_admin = criar_formulario_publicado(turma: turma, template: template, adm: outro_admin)
 end
 
-Dado("que existe um formulário criado em outro departamento") do
+Given("que existe um formulário criado em outro departamento") do
   outro_departamento = Departamento.create!(nome: "Departamento Externo #{SecureRandom.hex(2)}")
   outro_admin = criar_outro_administrador_formularios(outro_departamento)
   template = template_formulario_para_admin("Formulário Externo", outro_admin)
@@ -112,7 +112,7 @@ Dado("que existe um formulário criado em outro departamento") do
   @formulario_outro_departamento = criar_formulario_publicado(turma: turma, template: template, adm: outro_admin)
 end
 
-Dado("que existe um formulário criado em semestre anterior") do
+Given("que existe um formulário criado em semestre anterior") do
   administrador_formularios
   turma = criar_turma_do_nome_exibicao(
     "Disciplina Encerrada - Turma A",
@@ -122,7 +122,7 @@ Dado("que existe um formulário criado em semestre anterior") do
   @formulario_semestre_anterior = criar_formulario_publicado(turma: turma, publico_alvo: :docentes)
 end
 
-Dado("que existe um formulário criado para um template removido") do
+Given("que existe um formulário criado para um template removido") do
   administrador_formularios
   template = criar_template_com_questoes(titulo: "Template que será removido")
   turma = criar_turma_do_nome_exibicao("Paradigmas de Programação - Turma A")
@@ -131,63 +131,65 @@ Dado("que existe um formulário criado para um template removido") do
   @formulario_template_removido.reload
 end
 
-Dado("que estou na página de criação de formulários") do
+Given("que estou na página de criação de formulários") do
   visit new_formulario_path
 end
 
-Dado("que estou visualizando o template cadastrado chamado {string}") do |titulo|
+Given("que estou visualizando o template cadastrado chamado {string}") do |titulo|
   @template = Template.find_by!(titulo: titulo)
   visit template_path(@template)
 end
 
-Dado("que selecionei o template {string}") do |titulo|
+Given("que selecionei o template {string}") do |titulo|
   administrador_formularios
   @template = criar_template_com_questoes(titulo: titulo)
 end
 
-Dado("selecionei a turma {string}") do |nome_turma|
+Given("selecionei a turma {string}") do |nome_turma|
   @turma = criar_turma_do_nome_exibicao(nome_turma)
 end
 
-Quando("estou na página de criação de formulários filtrando pela matéria {string}") do |nome_materia|
+When("estou na página de criação de formulários filtrando pela matéria {string}") do |nome_materia|
   materia = Materia.find_by!(nome: nome_materia)
   visit new_formulario_path(materia_id: materia.id)
 end
 
-Quando("estou na página de criação de formulários") do
+When("estou na página de criação de formulários") do
   visit new_formulario_path
 end
 
-Quando("volto para a página de criação de formulários") do
+When("volto para a página de criação de formulários") do
   visit new_formulario_path
 end
 
-Quando("eu seleciono o template {string}") do |titulo|
+When("eu seleciono o template {string}") do |titulo|
   selecionar_template_no_formulario(titulo)
 end
 
-Quando("solicito criar um formulário a partir desse template") do
+When("solicito criar um formulário a partir desse template") do
   click_link "Usar em Formulário"
 end
 
-Quando("seleciono as turmas {string} e {string}") do |nome_turma_a, nome_turma_b|
+When("seleciono as turmas {string} e {string}") do |nome_turma_a, nome_turma_b|
   selecionar_turma_no_formulario(nome_turma_a)
   selecionar_turma_no_formulario(nome_turma_b)
 end
 
-Quando("seleciono a turma {string}") do |nome_turma|
+When("seleciono a turma {string}") do |nome_turma|
   selecionar_turma_no_formulario(nome_turma)
 end
 
-Quando("não seleciono nenhuma turma") do
+When("não seleciono nenhuma turma") do
   page.all('input[name="turma_ids[]"]', visible: :all).each do |checkbox|
     checkbox.set(false) if checkbox.checked?
   end
 end
 
-Quando(/^clico em "(Publicar formulário|Continuar|Confirmar Publicação)"$/) do |botao|
+When(/^clico em "(Publicar formulário|Continuar|Confirmar Publicação)"$/) do |botao|
   if page.has_button?(botao)
     click_button botao
+  elsif botao == "Confirmar Publicação" && page.has_button?("Publicar formulário")
+    click_button "Publicar formulário"
   elsif page.has_link?(botao)
     click_link botao
   elsif %w[Continuar Confirmar\ Publicação].include?(botao)
@@ -197,23 +199,29 @@ Quando(/^clico em "(Publicar formulário|Continuar|Confirmar Publicação)"$/) d
   end
 end
 
-Quando("seleciono a opção de público-alvo como {string}") do |publico_alvo|
+Given("que estou na etapa de definição de público-alvo") do
+  visit new_formulario_path(template_id: @template.id)
+  selecionar_template_no_formulario(@template.titulo)
+  selecionar_turma_no_formulario(@turma.nome_exibicao)
+end
+
+When("seleciono a opção de público-alvo como {string}") do |publico_alvo|
   selecionar_publico_alvo_no_dropdown(publico_alvo)
 end
 
-Quando("eu seleciono a opção de público-alvo como {string}") do |publico_alvo|
+When("eu seleciono a opção de público-alvo como {string}") do |publico_alvo|
   selecionar_publico_alvo_no_dropdown(publico_alvo)
 end
 
-Quando("eu não seleciono nem {string} e nem {string}") do |_, _|
+When("eu não seleciono nem {string} e nem {string}") do |_, _|
   limpar_publico_alvo_no_dropdown
 end
 
-Quando("confirmo a publicação do formulário") do
+When("confirmo a publicação do formulário") do
   click_button "Publicar formulário"
 end
 
-Quando("tento publicar formulário para a turma {string} pela requisição") do |nome_turma|
+When("tento publicar formulário para a turma {string} pela requisição") do |nome_turma|
   turma = turma_por_referencia(nome_turma)
   page.driver.submit(
     :post,
@@ -226,15 +234,15 @@ Quando("tento publicar formulário para a turma {string} pela requisição") do 
   )
 end
 
-Quando("eu acesso o painel de gerenciamento de formulários") do
+When("eu acesso o painel de gerenciamento de formulários") do
   visit formularios_path
 end
 
-Quando("eu acesso a página de formulários criados") do
+When("eu acesso a página de formulários criados") do
   visit formularios_path
 end
 
-Então("devo ver o controle segmentado de público-alvo com as opções {string} e {string}") do |docentes, discentes|
+Then("devo ver o controle segmentado de público-alvo com as opções {string} e {string}") do |docentes, discentes|
   expect(page).to have_css(".formulario-publico-segmented", visible: :all)
   expect(page).to have_css("input[name='publico_alvo'][type='radio'][value='docentes']", visible: :all)
   expect(page).to have_css("input[name='publico_alvo'][type='radio'][value='discentes']", visible: :all)
@@ -242,7 +250,7 @@ Então("devo ver o controle segmentado de público-alvo com as opções {string}
   expect(page).to have_content(discentes)
 end
 
-Então("devo ver todas as turmas dentro da mesma caixa de seleção") do
+Then("devo ver todas as turmas dentro da mesma caixa de seleção") do
   within(".formulario-classes__box") do
     expect(page).to have_css(".formulario-choice-card--class", minimum: 2)
     expect(page).to have_content(@turma_a.nome_exibicao)
@@ -252,24 +260,24 @@ Então("devo ver todas as turmas dentro da mesma caixa de seleção") do
   expect(page).not_to have_css(".formulario-class-group", visible: :all)
 end
 
-Então("devo ver o filtro de turmas com seções recolhidas para matéria e professor") do
+Then("devo ver o filtro de turmas com seções recolhidas para matéria e professor") do
   expect(page).to have_css("#formulario-class-filter-menu", visible: :all)
   expect(page).to have_css(".formulario-class-filter__section summary", text: "Matéria", visible: :all)
   expect(page).to have_css(".formulario-class-filter__section summary", text: "Professor", visible: :all)
   expect(page).not_to have_css(".formulario-class-filter__section[open]", visible: :all)
 end
 
-Então("devo ver buscas específicas para matéria e professor no filtro de turmas") do
+Then("devo ver buscas específicas para matéria e professor no filtro de turmas") do
   expect(page).to have_css("input[placeholder='Pesquisar matéria']", visible: :all)
   expect(page).to have_css("input[placeholder='Pesquisar professor']", visible: :all)
 end
 
-Então("devo ver {string} e {string} como opções de filtro por professor") do |professor_a, professor_b|
+Then("devo ver {string} e {string} como opções de filtro por professor") do |professor_a, professor_b|
   expect(page).to have_css("[data-filter-type='professor']", text: professor_a, visible: :all)
   expect(page).to have_css("[data-filter-type='professor']", text: professor_b, visible: :all)
 end
 
-Então("o formulário deve ser gerado com sucesso para ambas as turmas") do
+Then("o formulário deve ser gerado com sucesso para ambas as turmas") do
   formularios = Formulario.where(turma: [ @turma_a, @turma_b ], template: @template)
   expect(formularios.count).to eq(2)
 
@@ -283,12 +291,12 @@ Então("o formulário deve ser gerado com sucesso para ambas as turmas") do
   end
 end
 
-Então("devo estar na página de criação de formulários com o template {string} selecionado") do |titulo|
+Then("devo estar na página de criação de formulários com o template {string} selecionado") do |titulo|
   expect(page).to have_current_path(new_formulario_path(template_id: @template.id))
   esperar_template_selecionado_no_formulario(titulo)
 end
 
-Então("eu devo ver uma lista com todos os formulários criados, exibindo o template base, a turma e o público-alvo de cada um") do
+Then("eu devo ver uma lista com todos os formulários criados, exibindo o template base, a turma e o público-alvo de cada um") do
   expect(page).to have_css(".template-form__card", count: @formularios.size)
 
   @formularios.each do |formulario|
@@ -300,37 +308,37 @@ Então("eu devo ver uma lista com todos os formulários criados, exibindo o temp
   end
 end
 
-Então("ao acessar um formulário listado devo ver o botão {string}") do |texto_botao|
+Then("ao acessar um formulário listado devo ver o botão {string}") do |texto_botao|
   visit formulario_path(@formularios.first)
   expect(page).to have_link(texto_botao)
 end
 
-Então("devo ver a seção {string}") do |titulo|
+Then("devo ver a seção {string}") do |titulo|
   expect(page).to have_css("section", text: titulo)
 end
 
-Então("devo ver a seção {string} com subtítulo {string}") do |titulo, subtitulo|
+Then("devo ver a seção {string} com subtítulo {string}") do |titulo, subtitulo|
   within("section", text: titulo) do
     expect(page).to have_content(subtitulo)
   end
 end
 
-Então("devo ver o formulário de outro administrador na seção {string}") do |titulo_secao|
+Then("devo ver o formulário de outro administrador na seção {string}") do |titulo_secao|
   within("section", text: titulo_secao) do
     expect(page).to have_content(@formulario_outro_admin.template.titulo)
     expect(page).to have_content(@formulario_outro_admin.turma.nome_exibicao)
   end
 end
 
-Então("eu devo ver a listagem vazia") do
+Then("eu devo ver a listagem vazia") do
   expect(page).not_to have_css(".template-form__card")
 end
 
-Então("a mensagem {string} deve ser exibida na tela") do |mensagem|
+Then("a mensagem {string} deve ser exibida na tela") do |mensagem|
   expect(page).to have_content(mensagem)
 end
 
-Então("devo ver apenas os formulários vigentes do meu departamento") do
+Then("devo ver apenas os formulários vigentes do meu departamento") do
   @formularios.each do |formulario|
     expect(page).to have_content(formulario.turma.nome_exibicao)
   end
@@ -339,51 +347,51 @@ Então("devo ver apenas os formulários vigentes do meu departamento") do
   expect(page).not_to have_content(@formulario_semestre_anterior.turma.nome_exibicao)
 end
 
-Então("devo ver o formulário com template removido na listagem") do
+Then("devo ver o formulário com template removido na listagem") do
   expect(page).to have_content("Template removido")
   expect(page).to have_content(@formulario_template_removido.turma.nome_exibicao)
 end
 
-Então("ao acessar esse formulário devo ver o template como {string}") do |texto|
+Then("ao acessar esse formulário devo ver o template como {string}") do |texto|
   visit formulario_path(@formulario_template_removido)
   expect(page).to have_content(texto)
   expect(page).to have_content(@formulario_template_removido.turma.nome_exibicao)
 end
 
-Então(/^devo ver a mensagem "Formulário criado com sucesso para as turmas selecionadas"$/) do
+Then(/^devo ver a mensagem "Formulário criado com sucesso para as turmas selecionadas"$/) do
   expect(page).to have_content("Formulário criado com sucesso para as turmas selecionadas")
 end
 
-Então("eu devo ver uma mensagem de erro dizendo {string}") do |mensagem|
+Then("eu devo ver uma mensagem de erro dizendo {string}") do |mensagem|
   expect(page).to have_content(mensagem)
 end
 
-Então("eu devo ver o alerta {string}") do |mensagem|
+Then("eu devo ver o alerta {string}") do |mensagem|
   expect(page).to have_content(mensagem)
 end
 
-Então("nenhum formulário deve ser gerado") do
+Then("nenhum formulário deve ser gerado") do
   expect(Formulario.count).to eq(0)
 end
 
-Então("o formulário não deve ser publicado") do
+Then("o formulário não deve ser publicado") do
   expect(Formulario.count).to eq(0)
 end
 
-Então("deve existir apenas um formulário para a turma {string}") do |nome_turma|
+Then("deve existir apenas um formulário para a turma {string}") do |nome_turma|
   turma = turma_por_referencia(nome_turma)
   expect(turma.formularios.count).to eq(1)
 end
 
-Então("devo ver a turma {string} disponível para seleção") do |nome_turma|
+Then("devo ver a turma {string} disponível para seleção") do |nome_turma|
   expect(page).to have_css(".formulario-choice-card--class", text: nome_turma)
 end
 
-Então("não devo ver a turma {string} disponível para seleção") do |nome_turma|
+Then("não devo ver a turma {string} disponível para seleção") do |nome_turma|
   expect(page).not_to have_css(".formulario-choice-card--class", text: nome_turma)
 end
 
-Então("o formulário deve ficar disponível apenas para os alunos matriculados na turma {string}") do |nome_turma|
+Then("o formulário deve ficar disponível apenas para os alunos matriculados na turma {string}") do |nome_turma|
   turma = turma_por_referencia(nome_turma)
   formulario = turma.reload.formularios.sole
   expect(formulario.publico_alvo).to eq("discentes")
@@ -397,7 +405,7 @@ Então("o formulário deve ficar disponível apenas para os alunos matriculados 
   expect(page).to have_content(turma.nome_exibicao)
 end
 
-Então("os docentes da turma não devem ter acesso para responder a este formulário") do
+Then("os docentes da turma não devem ter acesso para responder a este formulário") do
   turma = @turma || turma_por_referencia("Estrutura de Dados - Turma C")
   docente = usuario_docente(email: "docente-formulario@unb.br", departamento: turma.departamento)
   ParticipacaoTurma.find_or_create_by!(usuario: docente, turma: turma, tipo_participacao: :docente)
@@ -407,7 +415,7 @@ Então("os docentes da turma não devem ter acesso para responder a este formul�
   expect(page).not_to have_content(@template.titulo)
 end
 
-Então("o formulário deve ficar disponível apenas para os professores vinculados à turma {string}") do |nome_turma|
+Then("o formulário deve ficar disponível apenas para os professores vinculados à turma {string}") do |nome_turma|
   turma = turma_por_referencia(nome_turma)
   formulario = turma.reload.formularios.sole
   expect(formulario.publico_alvo).to eq("docentes")
@@ -421,7 +429,7 @@ Então("o formulário deve ficar disponível apenas para os professores vinculad
   expect(page).to have_content(turma.nome_exibicao)
 end
 
-Então("devem existir formulários para {string} e {string} na turma {string}") do |publico_a, publico_b, nome_turma|
+Then("devem existir formulários para {string} e {string} na turma {string}") do |publico_a, publico_b, nome_turma|
   turma = turma_por_referencia(nome_turma)
   publicos = turma.formularios.order(:publico_alvo).pluck(:publico_alvo)
   expect(publicos).to contain_exactly(
@@ -444,7 +452,9 @@ def criar_formulario_publicado(turma:, template: nil, publico_alvo: :docentes, a
     turma: turma,
     template: template,
     publico_alvo: publico_alvo
-  )
+  ).tap do |formulario|
+    copiar_questoes_do_template_para_formulario(formulario, template)
+  end
 end
 
 def criar_turma_do_nome_exibicao(nome_exibicao, departamento: nil, ano: Date.current.year, semestre: Turma.semestre_atual)

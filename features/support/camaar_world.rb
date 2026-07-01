@@ -238,11 +238,16 @@ module CamaarWorld
       turma: turma,
       template: template,
       publico_alvo: :discentes
-    )
+    ).tap do |formulario|
+      copiar_questoes_do_template_para_formulario(formulario, template)
+    end
   end
 
-  def pendente_por_app_incompleto!(area)
-    pending("Ainda não há implementação da feature de #{area} no app.")
+  def copiar_questoes_do_template_para_formulario(formulario, template)
+    return formulario if template.blank? || formulario.questoes.exists?
+
+    Formularios::TemplateQuestionSnapshot.copy(template: template, formulario: formulario)
+    formulario.reload
   end
 end
 
