@@ -1,36 +1,29 @@
-<h1>Publicar Formulário</h1>
+<main class="app-page">
+  <header class="app-page__header">
+    <h1>Publicar Formulário</h1>
+    <p>Revise os dados e defina quem responderá à avaliação.</p>
+  </header>
 
-<% if flash[:notice] %>
-  <p><%= flash[:notice] %></p>
-<% end %>
+  <section class="app-panel">
+    <h2>Resumo</h2>
+    <div class="summary-list">
+      <p><strong>Template:</strong> <%= @template.titulo %></p>
+      <p><strong>Turmas:</strong></p>
+      <ul>
+        <% @turmas.each do |turma| %>
+          <li><%= turma.nome_exibicao %></li>
+        <% end %>
+      </ul>
+    </div>
+  </section>
 
-<% if flash[:alert] %>
-  <p><%= flash[:alert] %></p>
-<% end %>
+  <%= form_with url: formularios_path, class: "app-panel app-form" do |form| %>
+    <div class="app-field formulario-builder__field--compact">
+      <%= render "publico_alvo_select", menu_id: "publicar-publico-alvo-menu" %>
+    </div>
 
-<div>
-  <h2>Resumo</h2>
-  <p><strong>Template:</strong> <%= @template.titulo %></p>
-  <p><strong>Turmas:</strong></p>
-  <ul>
-    <% @turmas.each do |turma| %>
-      <li><%= turma.nome_exibicao %></li>
-    <% end %>
-  </ul>
-</div>
-
-<%= form_with url: formularios_path do |form| %>
-  <div>
-    <p>Público-alvo</p>
-    <% Formulario.publico_alvos.each do |valor, _| %>
-      <div>
-        <label>
-          <%= radio_button_tag :publico_alvo, valor, false, id: "publico_alvo_#{valor}" %>
-          <%= valor == "docentes" ? "Docentes" : "Discentes" %>
-        </label>
-      </div>
-    <% end %>
-  </div>
-
-  <%= form.submit "Confirmar Publicação" %>
-<% end %>
+    <div class="app-actions">
+      <%= form.submit "Confirmar Publicação", class: "app-button app-button--accent" %>
+    </div>
+  <% end %>
+</main>

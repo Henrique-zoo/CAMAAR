@@ -37,18 +37,18 @@ class Resposta < ApplicationRecord
       message: "já foi respondida nesta avaliação"
     }
 
-  validate :questao_deve_pertencer_ao_template_do_formulario
+  validate :questao_deve_pertencer_ao_formulario
   validate :conteudo_deve_ser_compativel_com_tipo_da_questao
 
   private
 
-  def questao_deve_pertencer_ao_template_do_formulario
+  def questao_deve_pertencer_ao_formulario
     return if questao.blank?
     return if avaliacao.blank?
-    return if template_do_formulario.blank?
-    return if template_do_formulario.questoes.exists?(id: questao_id)
+    return if formulario.blank?
+    return if formulario.questoes.exists?(id: questao_id)
 
-    errors.add(:questao, "não pertence ao template do formulário")
+    errors.add(:questao, "não pertence ao formulário")
   end
 
   def conteudo_deve_ser_compativel_com_tipo_da_questao
@@ -82,7 +82,7 @@ class Resposta < ApplicationRecord
     opcoes_escolhidas.reject(&:marked_for_destruction?).any?
   end
 
-  def template_do_formulario
-    avaliacao.formulario.template
+  def formulario
+    avaliacao.formulario
   end
 end

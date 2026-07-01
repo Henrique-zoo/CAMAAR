@@ -73,6 +73,59 @@ RSpec.describe UtilizacaoQuestao, type: :model do
 
       expect(validator.options[:scope]).to eq(%i[template_id parent_id])
     end
+
+    it "herda o template do parent quando não informado" do
+      template = create_template_with_questoes(titulo: "Avaliação")
+      parent = template.utilizacoes_questoes.first
+      questao_filha = Questao.create!(enunciado: "Explique", tipo: :discursiva)
+      utilizacao = described_class.new(parent: parent, questao: questao_filha, numero: 2)
+
+      expect(utilizacao).to be_valid
+      expect(utilizacao.template).to eq(template)
+    end
+
+    it "rejeita parent de outro template" do
+      template = create_template_with_questoes(titulo: "Avaliação")
+      outro_template = create_template_with_questoes(titulo: "Outra avaliação")
+      parent_externo = outro_template.utilizacoes_questoes.first
+      questao_filha = Questao.create!(enunciado: "Explique", tipo: :discursiva)
+      utilizacao = described_class.new(
+        template: template,
+        parent: parent_externo,
+        questao: questao_filha,
+        numero: 2
+      )
+
+      expect(utilizacao).not_to be_valid
+      expect(utilizacao.errors[:parent]).to include("deve pertencer ao mesmo template")
+    end
+
+    it "rejeita parent apontando para o próprio registro" do
+      template = create_template_with_questoes(titulo: "Avaliação")
+      utilizacao = template.utilizacoes_questoes.first
+
+      utilizacao.parent_id = utilizacao.id
+
+      expect(utilizacao).not_to be_valid
+      expect(utilizacao.errors[:parent]).to include("não pode ser a própria utilização de questão")
+    end
+
+    it "rejeita ciclos na hierarquia de questões" do
+      template = create_template_with_questoes(titulo: "Avaliação")
+      parent = template.utilizacoes_questoes.first
+      questao_filha = Questao.create!(enunciado: "Explique", tipo: :discursiva)
+      child = described_class.create!(
+        template: template,
+        parent: parent,
+        questao: questao_filha,
+        numero: 2
+      )
+
+      parent.parent = child
+
+      expect(parent).not_to be_valid
+      expect(parent.errors[:parent]).to include("não pode formar ciclo")
+    end
   end
 
   describe "#raiz?" do

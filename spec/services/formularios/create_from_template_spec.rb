@@ -85,12 +85,43 @@ RSpec.describe Formularios::CreateFromTemplate do
       expect(Formulario.count).to eq(0)
     end
 
-    it "levanta erro quando turma já possui formulário" do
+    it "levanta erro quando turma já possui formulário para o mesmo template e público-alvo" do
       call_service(turma_ids: [ turma_a.id ])
 
       expect do
         call_service(turma_ids: [ turma_a.id ])
-      end.to raise_error(Formularios::Error, "Uma ou mais turmas selecionadas já possuem formulário")
+      end.to raise_error(
+        Formularios::Error,
+        "Uma ou mais turmas selecionadas já possuem formulário para este template e público-alvo"
+      )
+    end
+
+    it "permite criar outro formulário com o mesmo template para público-alvo diferente" do
+      call_service(turma_ids: [ turma_a.id ], publico_alvo: :docentes)
+
+      expect do
+        call_service(turma_ids: [ turma_a.id ], publico_alvo: :discentes)
+      end.not_to raise_error
+
+      expect(turma_a.reload.formularios.count).to eq(2)
+      expect(turma_a.formularios.pluck(:template_id)).to eq([ template.id, template.id ])
+    end
+
+    it "permite criar formulário com template diferente para a mesma turma e público-alvo" do
+      outro_template = create_template_with_questoes(titulo: "Outro Template", adm: perfil_adm)
+      call_service(turma_ids: [ turma_a.id ], publico_alvo: :docentes)
+
+      expect do
+        described_class.call(
+          template_id: outro_template.id,
+          turma_ids: [ turma_a.id ],
+          publico_alvo: :docentes,
+          perfil_adm: perfil_adm
+        )
+      end.not_to raise_error
+
+      expect(turma_a.reload.formularios.count).to eq(2)
+      expect(turma_a.formularios.pluck(:template_id)).to contain_exactly(template.id, outro_template.id)
     end
 
     it "persiste o público-alvo informado" do
@@ -130,6 +161,45 @@ RSpec.describe Formularios::CreateFromTemplate do
       end.to raise_error(Formularios::Error, "Por favor, selecione o público-alvo do formulário")
 
       expect(Formulario.count).to eq(0)
+    end
+  end
+
+  describe ".validate_preparacao!" do
+    def validate_preparacao(**overrides)
+      described_class.validate_preparacao!(
+        template_id: template.id,
+        turma_ids: [ turma_a.id ],
+        perfil_adm: perfil_adm,
+        **overrides
+      )
+    end
+
+    it "retorna nil quando dados são válidos" do
+      expect(validate_preparacao).to be_nil
+    end
+
+    it "levanta erro quando template não possui questões" do
+      template_vazio = create_template_with_questoes(titulo: "Vazio", adm: perfil_adm)
+      template_vazio.utilizacoes_questoes.destroy_all
+
+      expect do
+        validate_preparacao(template_id: template_vazio.id)
+      end.to raise_error(Formularios::Error, described_class::SEM_QUESTOES)
+    end
+
+    it "levanta erro quando turma não existe" do
+      expect do
+        validate_preparacao(turma_ids: [ 999_999 ])
+      end.to raise_error(Formularios::Error, described_class::TURMAS_INVALIDAS)
+    end
+
+    it "levanta erro quando turma pertence a outro departamento" do
+      outro_departamento = Departamento.create!(nome: "IC #{SecureRandom.hex(2)}")
+      turma_externa = create_turma(nome_materia: "ES", numero: 99, departamento: outro_departamento)
+
+      expect do
+        validate_preparacao(turma_ids: [ turma_externa.id ])
+      end.to raise_error(Formularios::Error, described_class::TURMAS_INVALIDAS)
     end
   end
 end

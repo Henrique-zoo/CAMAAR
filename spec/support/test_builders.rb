@@ -31,26 +31,15 @@ module TestBuilders
     template = Template.new(titulo: titulo, descricao: "Descrição de teste", adm: adm, criado_em: Time.current)
 
     (questoes || default_questoes).each_with_index do |questao_attrs, index|
-      attrs = questao_attrs.dup
-      opcoes = attrs.delete(:opcoes)
-      numero = attrs.delete(:numero) || attrs.delete(:posicao) || (index + 1)
-      attrs.delete(:obrigatoria)
-
-      questao = Questao.new(attrs)
-
-      if opcoes.present?
-        Array(opcoes).each_with_index do |texto, opcao_index|
-          questao.opcoes.build(numero: opcao_index + 1, texto: texto)
-        end
-      end
-
-      questao.save!
-
-      template.utilizacao_questoes.build(questao: questao, numero: numero)
+      questao = create_questao_for_template(questao_attrs)
+      template.utilizacoes_questoes.build(
+        questao: questao,
+        numero: numero_utilizacao_template(questao_attrs, index)
+      )
     end
 
     template.save!
-    template.utilizacao_questoes.each(&:save!)
+    template.utilizacoes_questoes.each(&:save!)
     template
   end
 
@@ -71,7 +60,7 @@ module TestBuilders
   end
 
   def questoes_ordenadas_do_template(template)
-    template.utilizacao_questoes.raizes.ordenadas.includes(:questao).map(&:questao)
+    template.utilizacoes_questoes.raizes.ordenadas.includes(:questao).map(&:questao)
   end
 
   def create_perfil_docente(usuario, departamento: nil, **attrs)
@@ -110,6 +99,7 @@ module TestBuilders
       **attrs
     )
 
+    copy_template_snapshot_for(formulario, template)
     formulario.criar_avaliacoes_pendentes! if criar_avaliacoes
     formulario
   end
@@ -128,6 +118,31 @@ module TestBuilders
         opcoes: %w[Ruim Regular Boa Excelente]
       }
     ]
+  end
+
+  def create_questao_for_template(questao_attrs)
+    attrs = questao_attrs.except(:opcoes, :numero, :posicao, :obrigatoria)
+    Questao.new(attrs).tap do |questao|
+      build_opcoes_for_template(questao, questao_attrs[:opcoes])
+      questao.save!
+    end
+  end
+
+  def build_opcoes_for_template(questao, opcoes)
+    Array(opcoes).each_with_index do |texto, index|
+      questao.opcoes.build(numero: index + 1, texto: texto)
+    end
+  end
+
+  def numero_utilizacao_template(questao_attrs, index)
+    questao_attrs[:numero] || questao_attrs[:posicao] || (index + 1)
+  end
+
+  def copy_template_snapshot_for(formulario, template)
+    return if template.blank?
+    return if formulario.questoes.exists?
+
+    Formularios::TemplateQuestionSnapshot.copy(template: template, formulario: formulario)
   end
 end
 

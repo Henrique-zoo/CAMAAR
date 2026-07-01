@@ -39,7 +39,7 @@ def criar_contexto_formulario_com_questoes(nome_turma)
   template = Template.create!(
     adm: perf_adm,
     titulo: "Template #{rand(1000)}",
-    utilizacao_questoes_attributes: [
+    utilizacoes_questoes_attributes: [
       { questao_id: @questao_discursiva.id, numero: 1 },
       { questao_id: @questao_objetiva.id,   numero: 2 }
     ]
